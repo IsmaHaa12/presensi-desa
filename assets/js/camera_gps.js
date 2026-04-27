@@ -24,7 +24,7 @@ function getLocation() {
             (position) => {
                 latitude = position.coords.latitude;
                 longitude = position.coords.longitude;
-            
+
                 // Ubah UI menjadi Hijau (Sukses)
                 document.getElementById('statusBox').className = "mt-4 flex items-center bg-green-50 p-3 rounded-lg border border-green-100";
                 document.getElementById('statusTeks').className = "text-xs text-green-700";
