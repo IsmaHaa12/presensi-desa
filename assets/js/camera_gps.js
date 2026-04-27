@@ -55,7 +55,7 @@ function prosesAbsen(jenis) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    
+
     // Supaya hasil foto tidak terbalik (mirror)
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
