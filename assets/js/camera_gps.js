@@ -16,7 +16,6 @@ async function initCamera() {
         alert("Gagal mengakses kamera. Pastikan browser diizinkan mengakses kamera!");
     }
 }
-
 // 2. Ambil Lokasi GPS
 function getLocation() {
     if (navigator.geolocation) {
