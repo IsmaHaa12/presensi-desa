@@ -1,4 +1,8 @@
 <?php
+// Paksa session berjalan di semua IP/domain akses
+ini_set('session.cookie_domain', ''); // Kosongkan domain biar session berlaku di semua IP
+ini_set('session.cookie_samesite', 'Lax'); // Izinkan session lintas akses lokal
+
 session_start(); // Mulai session untuk nyimpan data login
 
 $host = 'localhost';

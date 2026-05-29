@@ -20,21 +20,24 @@ $query_hadir = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal
 $total_hadir = $conn->query($query_hadir)->fetch_assoc()['total'];
 
 // 3. Total Izin/Sakit Hari Ini
-$query_izin = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND status_kehadiran IN ('Izin', 'Sakit')";
+$query_izin = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND status_kehadiran IN ('Izin', 'Sakit', 'Cuti', 'Dinas Luar')";
 $total_izin = $conn->query($query_izin)->fetch_assoc()['total'];
 
 // 4. Belum Absen
 $belum_absen = $total_pegawai - ($total_hadir + $total_izin);
 
 // --- MENGAMBIL DATA TABEL PRESENSI HARI INI ---
-// Menggunakan LEFT JOIN agar pegawai yang belum absen tetap muncul di tabel
+// Menggunakan LEFT JOIN agar pegawai yang belum absen tetap muncul di tabel. 
+// Jangan lupa panggil foto_masuk dan foto_pulang agar fotonya bisa dibuka.
 $query_tabel = "
     SELECT 
         p.nama, 
         p.jabatan, 
         pr.jam_masuk, 
         pr.jam_pulang, 
-        pr.status_kehadiran 
+        pr.status_kehadiran,
+        pr.foto_masuk,
+        pr.foto_pulang
     FROM pegawai p 
     LEFT JOIN presensi pr ON p.id = pr.pegawai_id AND pr.tanggal = '$tanggal_hari_ini'
     WHERE p.role = 'pegawai'
@@ -252,12 +255,28 @@ $result_tabel = $conn->query($query_tabel);
                                             <?php endif; ?>
                                         </td>
 
+                                        <!-- Kolom Aksi (Tombol FOTO) -->
                                         <td class="px-6 py-4 text-center">
-                                            <?php if ($row['jam_masuk']): ?>
-                                                <button class="text-blue-600 hover:text-blue-800 font-semibold text-xs uppercase tracking-wide bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition">Lihat Foto</button>
-                                            <?php else: ?>
-                                                <span class="text-slate-300 text-xs italic">-</span>
-                                            <?php endif; ?>
+                                            <div class="flex justify-center gap-2">
+                                                <!-- Jika ada foto masuk -->
+                                                <?php if ($row['foto_masuk']): ?>
+                                                    <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_masuk']) ?>" target="_blank" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded hover:bg-blue-100 transition whitespace-nowrap">
+                                                        FOTO MASUK
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <!-- Jika ada foto pulang -->
+                                                <?php if ($row['foto_pulang']): ?>
+                                                    <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_pulang']) ?>" target="_blank" class="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded hover:bg-amber-100 transition whitespace-nowrap">
+                                                        FOTO PULANG
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <!-- Jika belum ada foto sama sekali -->
+                                                <?php if (!$row['foto_masuk'] && !$row['foto_pulang']): ?>
+                                                    <span class="text-xs text-slate-400 italic">-</span>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>

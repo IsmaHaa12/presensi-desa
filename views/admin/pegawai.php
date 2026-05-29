@@ -105,7 +105,7 @@ $result_pegawai = $conn->query($query_pegawai);
             <!-- Notifikasi Aksi -->
             <?php if (isset($_GET['msg'])): ?>
                 <div class="bg-emerald-100 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded shadow-sm" role="alert">
-                    <p class="font-bold">Berhasil</p>
+                    <p class="font-bold">Informasi</p>
                     <p><?= htmlspecialchars($_GET['msg']) ?></p>
                 </div>
             <?php endif; ?>
@@ -153,17 +153,27 @@ $result_pegawai = $conn->query($query_pegawai);
                                             <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <?php if ($row['username'] != 'admin'): // Mencegah penghapusan akun super admin 
+                                            <?php if ($row['username'] != 'admin'): // Mencegah penghapusan/edit akun super admin utama 
                                             ?>
-                                                <form action="../../actions/pegawai_act.php" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus pegawai ini?');">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                                                    <button type="submit" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-2 rounded transition" title="Hapus">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <!-- Tombol Edit -->
+                                                    <button onclick="bukaModalEdit(<?= htmlspecialchars(json_encode($row)) ?>)" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded transition" title="Edit">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                                         </svg>
                                                     </button>
-                                                </form>
+
+                                                    <!-- Tombol Hapus -->
+                                                    <form action="../../actions/pegawai_act.php" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus pegawai ini?');">
+                                                        <input type="hidden" name="action" value="delete">
+                                                        <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                                                        <button type="submit" class="text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 p-2 rounded transition" title="Hapus">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             <?php else: ?>
                                                 <span class="text-xs text-slate-400 italic">Protected</span>
                                             <?php endif; ?>
@@ -239,6 +249,73 @@ $result_pegawai = $conn->query($query_pegawai);
         </div>
     </div>
 
+    <!-- MODAL EDIT PEGAWAI -->
+    <div id="modalEdit" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-lg text-slate-800">Edit Akun Pegawai</h3>
+                <button onclick="document.getElementById('modalEdit').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form action="../../actions/pegawai_act.php" method="POST" class="p-6">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="id" id="edit_id">
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                        <input type="text" name="nama" id="edit_nama" required class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Username (Login)</label>
+                            <input type="text" name="username" id="edit_username" required class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                            <input type="password" name="password" placeholder="(Kosongkan jika tidak diubah)" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Jabatan Struktural</label>
+                        <input type="text" name="jabatan" id="edit_jabatan" required class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Role Sistem</label>
+                        <select name="role" id="edit_role" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white">
+                            <option value="pegawai">Pegawai (Akses PWA Mobile)</option>
+                            <option value="admin">Admin (Akses Web Dashboard)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex gap-3">
+                    <button type="button" onclick="document.getElementById('modalEdit').classList.add('hidden')" class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-semibold transition">Batal</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition shadow-sm">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script untuk memunculkan modal edit dan mengisi datanya -->
+    <script>
+        function bukaModalEdit(data) {
+            document.getElementById('edit_id').value = data.id;
+            document.getElementById('edit_nama').value = data.nama;
+            document.getElementById('edit_username').value = data.username;
+            document.getElementById('edit_jabatan').value = data.jabatan;
+            document.getElementById('edit_role').value = data.role;
+
+            document.getElementById('modalEdit').classList.remove('hidden');
+        }
+    </script>
 </body>
 
 </html>

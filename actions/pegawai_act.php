@@ -10,67 +10,90 @@ if (!isset($_SESSION['pegawai_id']) || $_SESSION['role'] != 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
-    // Cek aksi apa yang diminta (tambah atau hapus)
+    // Cek aksi apa yang diminta (add, edit, atau delete)
     $action = isset($_POST['action']) ? $_POST['action'] : '';
 
     // ========================================================
     // 1. AKSI TAMBAH PEGAWAI BARU
     // ========================================================
     if ($action == 'add') {
-        // Amankan data dari injeksi SQL
         $nama     = $conn->real_escape_string($_POST['nama']);
         $username = $conn->real_escape_string($_POST['username']);
-        $password = md5($_POST['password']); // Hashing MD5 sederhana
+        $password = md5($_POST['password']);
         $jabatan  = $conn->real_escape_string($_POST['jabatan']);
         $role     = $conn->real_escape_string($_POST['role']);
 
-        // Cek apakah username sudah dipakai orang lain
+        // Cek apakah username sudah dipakai
         $cek_username = "SELECT * FROM pegawai WHERE username = '$username'";
-        $result_cek = $conn->query($cek_username);
-
-        if ($result_cek->num_rows > 0) {
-            // Kalau username sudah ada
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Gagal! Username '$username' sudah dipakai orang lain."));
+        if ($conn->query($cek_username)->num_rows > 0) {
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Gagal! Username '$username' sudah dipakai."));
             exit;
         }
 
-        // Jika username aman, masukkan ke database
         $sql = "INSERT INTO pegawai (username, nama, password, jabatan, role) 
                 VALUES ('$username', '$nama', '$password', '$jabatan', '$role')";
 
         if ($conn->query($sql) === TRUE) {
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Pegawai baru bernama '$nama' berhasil ditambahkan."));
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Pegawai '$nama' berhasil ditambahkan."));
         } else {
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Terjadi kesalahan sistem: " . $conn->error));
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Error: " . $conn->error));
         }
         exit;
     }
 
     // ========================================================
-    // 2. AKSI HAPUS PEGAWAI
+    // 2. AKSI EDIT DATA PEGAWAI
+    // ========================================================
+    else if ($action == 'edit') {
+        $id       = intval($_POST['id']);
+        $nama     = $conn->real_escape_string($_POST['nama']);
+        $username = $conn->real_escape_string($_POST['username']);
+        $jabatan  = $conn->real_escape_string($_POST['jabatan']);
+        $role     = $conn->real_escape_string($_POST['role']);
+
+        // Cek apakah username dipakai orang lain (selain dia sendiri)
+        $cek_username = "SELECT id FROM pegawai WHERE username = '$username' AND id != $id";
+        if ($conn->query($cek_username)->num_rows > 0) {
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Gagal! Username '$username' sudah dipakai orang lain."));
+            exit;
+        }
+
+        // Kalau password diisi, berarti mau ganti password. Kalau kosong, password lama tetap dipakai.
+        if (!empty($_POST['password'])) {
+            $password = md5($_POST['password']);
+            $sql = "UPDATE pegawai SET nama='$nama', username='$username', password='$password', jabatan='$jabatan', role='$role' WHERE id=$id";
+        } else {
+            $sql = "UPDATE pegawai SET nama='$nama', username='$username', jabatan='$jabatan', role='$role' WHERE id=$id";
+        }
+
+        if ($conn->query($sql) === TRUE) {
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Data pegawai '$nama' berhasil diperbarui."));
+        } else {
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Error update: " . $conn->error));
+        }
+        exit;
+    }
+
+    // ========================================================
+    // 3. AKSI HAPUS PEGAWAI
     // ========================================================
     else if ($action == 'delete') {
         $id_pegawai = intval($_POST['id']);
 
-        // Proteksi: Jangan sampai admin menghapus akun super admin (dirinya sendiri)
         if ($id_pegawai == $_SESSION['pegawai_id']) {
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Anda tidak bisa menghapus akun Anda sendiri!"));
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Tidak bisa menghapus akun sendiri!"));
             exit;
         }
 
-        // Hapus pegawai dari database (karena di database kita pasang ON DELETE CASCADE, 
-        // semua data presensi milik pegawai ini akan otomatis ikut terhapus)
         $sql_hapus = "DELETE FROM pegawai WHERE id = $id_pegawai";
-
         if ($conn->query($sql_hapus) === TRUE) {
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Akun pegawai berhasil dihapus permanen."));
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Akun berhasil dihapus."));
         } else {
-            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Gagal menghapus akun: " . $conn->error));
+            header("Location: ../views/admin/pegawai.php?msg=" . urlencode("Gagal menghapus: " . $conn->error));
         }
         exit;
     }
 } else {
-    // Kalau ada orang iseng buka file ini langsung lewat URL
     header("Location: ../views/admin/dashboard.php");
     exit;
 }

@@ -1,51 +1,106 @@
 <?php
-require_once 'config/database.php';
+session_start();
 
-// Jika sudah login, langsung arahkan ke halaman presensi tanpa harus login lagi
 if (isset($_SESSION['pegawai_id'])) {
     header("Location: views/pegawai/dashboard.php");
     exit;
 }
-?>
-<?php include 'views/layouts/header.php'; ?>
 
-<main class="flex-1 flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
-        <div class="text-center mb-8">
-            <!-- Icon / Logo Desa -->
-            <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
-                </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900">Presensi Desa</h1>
-            <p class="text-sm text-gray-500 mt-1">Silakan masuk ke akun Anda</p>
+$error = isset($_GET['error']) ? $_GET['error'] : '';
+$success = isset($_GET['success']) ? $_GET['success'] : '';
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistem Presensi Desa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-[#dbeafe] flex items-center justify-center px-4 py-8">
+
+    <div class="w-full max-w-md">
+        <!-- Header -->
+        <div class="mb-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-black leading-tight">Sistem Presensi Desa</h1>
+            <p class="text-black/80 text-sm mt-3 font-medium">
+                Login pegawai untuk mengakses aplikasi presensi balai desa.
+            </p>
         </div>
 
-        <!-- Menampilkan kotak peringatan merah jika login gagal -->
-        <?php if (isset($_GET['error'])): ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
-                <strong class="font-bold">Gagal!</strong>
-                <span class="block sm:inline"><?= htmlspecialchars($_GET['error']) ?></span>
-            </div>
-        <?php endif; ?>
-
-        <form action="actions/login_act.php" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input type="text" name="username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Masukkan username" required>
+        <!-- Login Card -->
+        <div class="bg-[#cfe0ff] border-[3px] border-black rounded-2xl p-6 shadow-[8px_8px_0px_#000000]">
+            <div class="mb-5">
+                <h2 class="text-2xl font-extrabold text-black">Login ke akun</h2>
+                <p class="text-sm text-black/80 mt-1">Masukkan username dan password Anda</p>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="••••••••" required>
-            </div>
+            <?php if (!empty($error)): ?>
+                <div class="mb-4 bg-[#fecaca] border-[3px] border-black rounded-xl px-4 py-3 shadow-[4px_4px_0px_#000000]">
+                    <p class="text-sm font-bold text-black"><?= htmlspecialchars($error) ?></p>
+                </div>
+            <?php endif; ?>
 
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg mt-6 transition duration-200">
-                Masuk
-            </button>
-        </form>
+            <?php if (!empty($success)): ?>
+                <div class="mb-4 bg-[#bbf7d0] border-[3px] border-black rounded-xl px-4 py-3 shadow-[4px_4px_0px_#000000]">
+                    <p class="text-sm font-bold text-black"><?= htmlspecialchars($success) ?></p>
+                </div>
+            <?php endif; ?>
+
+            <form action="actions/login_act.php" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-extrabold text-black mb-2">Username</label>
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Masukkan username"
+                        class="w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:bg-yellow-50"
+                        required>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-extrabold text-black">Password</label>
+                        <button
+                            type="button"
+                            onclick="togglePassword()"
+                            class="text-xs font-bold underline text-black hover:text-blue-700">
+                            Lihat password
+                        </button>
+                    </div>
+                    <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        placeholder="Masukkan password"
+                        class="w-full rounded-xl border-[3px] border-black bg-white px-4 py-3 text-black placeholder:text-gray-500 outline-none focus:bg-yellow-50"
+                        required>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full rounded-xl border-[3px] border-black bg-[#4f8dfd] px-4 py-3 font-extrabold text-black shadow-[4px_4px_0px_#000000] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
+                    Login
+                </button>
+            </form>
+
+            <div class="mt-5 rounded-xl border-[3px] border-black bg-white px-4 py-3 text-center shadow-[4px_4px_0px_#000000]">
+                <p class="text-xs font-bold text-black">
+                    Akses hanya untuk pegawai desa yang terdaftar dalam sistem.
+                </p>
+            </div>
+        </div>
     </div>
-</main>
 
-<?php include 'views/layouts/footer.php'; ?>
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+
+</html>

@@ -23,10 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($cek_result->num_rows > 0) {
         $error = "Anda sudah mengisi presensi atau izin untuk hari ini.";
     } else {
-        // Karena kita tidak bikin tabel khusus izin (agar simpel), 
-        // kita masukkan ke tabel presensi dengan status izin/sakit
-        // Untuk keterangan tambahan, kita simpan di kolom lat_masuk (sebagai trik simpel tanpa merubah database)
-
+        // Simpan ke tabel presensi
         $sql = "INSERT INTO presensi (pegawai_id, tanggal, jam_masuk, status_kehadiran, lat_masuk) 
                 VALUES ('$pegawai_id', '$tanggal_hari_ini', '$waktu_sekarang', '$jenis_izin', '$keterangan')";
 
@@ -41,86 +38,107 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <?php include '../layouts/header.php'; ?>
 
-<!-- Top Navigation -->
-<header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-20 flex items-center">
-    <!-- Tombol Back -->
-    <a href="dashboard.php" class="mr-3 p-1 rounded-full hover:bg-blue-700 transition">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-    </a>
-    <h1 class="text-lg font-bold">Pengajuan Izin / Sakit</h1>
-</header>
+<!-- Konten Utama -->
+<main class="flex-1 pb-20 bg-gray-50 min-h-screen max-w-md mx-auto w-full relative">
 
-<main class="flex-1 p-4 pb-24 max-w-md mx-auto w-full bg-gray-50 min-h-screen">
-
-    <?php if (isset($sukses)): ?>
-        <div class="bg-emerald-100 border border-emerald-400 text-emerald-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium flex items-center shadow-sm">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <?= htmlspecialchars($sukses) ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (isset($error)): ?>
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm font-medium flex items-center shadow-sm">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <?= htmlspecialchars($error) ?>
-        </div>
-    <?php endif; ?>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+    <!-- Header Biru -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-b-[2.5rem] px-5 pt-10 pb-8 text-white shadow-lg">
+        <div class="flex items-center gap-3">
+            <a href="dashboard.php" class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center border border-white/20 hover:bg-white/20 transition">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-            </div>
-            <h2 class="text-lg font-bold text-gray-800">Form Ketidakhadiran</h2>
-            <p class="text-xs text-gray-500 mt-1">Isi form di bawah ini jika Anda berhalangan hadir ke Balai Desa hari ini.</p>
-        </div>
-
-        <form action="" method="POST" class="space-y-4">
-            <!-- Jenis Izin -->
+            </a>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Jenis Keterangan</label>
-                <div class="relative">
-                    <select name="jenis_izin" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition">
-                        <option value="" disabled selected>-- Pilih Keterangan --</option>
-                        <option value="Sakit">Sakit (S)</option>
-                        <option value="Izin">Izin (I)</option>
-                        <option value="Cuti">Cuti (C)</option>
-                        <option value="Dinas Luar">Dinas Luar (D)</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                <h1 class="text-2xl font-bold leading-tight">Pengajuan Izin</h1>
+                <p class="text-xs text-blue-100 mt-1">Ajukan izin atau sakit untuk hari ini</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-5 -mt-5">
+        <!-- Alert sukses -->
+        <?php if (isset($sukses)): ?>
+            <div class="bg-emerald-100 border border-emerald-300 text-emerald-700 px-4 py-3 rounded-2xl mb-4 text-sm font-medium flex items-start shadow-sm">
+                <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span><?= htmlspecialchars($sukses) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <!-- Alert error -->
+        <?php if (isset($error)): ?>
+            <div class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-2xl mb-4 text-sm font-medium flex items-start shadow-sm">
+                <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span><?= htmlspecialchars($error) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <!-- Card Form -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div class="p-5 border-b border-gray-100 bg-gray-50/60">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-gray-800">Form Ketidakhadiran</h2>
+                        <p class="text-xs text-gray-500 mt-1">Isi data jika berhalangan hadir ke Balai Desa.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Keterangan Alasan -->
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Alasan Detail</label>
-                <textarea name="keterangan" rows="3" required placeholder="Contoh: Mengurus KK di Kecamatan / Demam berdarah" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
-            </div>
+            <form action="" method="POST" class="p-5 space-y-4">
+                <!-- Jenis Izin -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Jenis Keterangan</label>
+                    <div class="relative">
+                        <select name="jenis_izin" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition">
+                            <option value="" disabled selected>-- Pilih Keterangan --</option>
+                            <option value="Sakit">Sakit (S)</option>
+                            <option value="Izin">Izin (I)</option>
+                            <option value="Cuti">Cuti (C)</option>
+                            <option value="Dinas Luar">Dinas Luar (D)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
 
-            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md mt-4 flex justify-center items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                </svg>
-                Kirim Pengajuan
-            </button>
-        </form>
+                <!-- Keterangan -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Alasan Detail</label>
+                    <textarea name="keterangan" rows="4" required placeholder="Contoh: Mengurus KK di Kecamatan / Demam berdarah" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                </div>
+
+                <!-- Info kecil -->
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                    <p class="text-xs text-blue-700 leading-relaxed">
+                        Pengajuan ini hanya bisa dilakukan satu kali dalam satu hari. Jika hari ini Anda sudah mengisi presensi atau izin, maka form tidak dapat dikirim lagi.
+                    </p>
+                </div>
+
+                <!-- Tombol submit -->
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-md mt-2 flex justify-center items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    Kirim Pengajuan
+                </button>
+            </form>
+        </div>
     </div>
-
 </main>
 
-<!-- Bottom Navigation Bar (Mobile Style) -->
+<!-- Bottom Navigation Bar -->
 <nav class="fixed bottom-0 w-full max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around p-3 pb-safe z-50 left-0 right-0">
     <a href="dashboard.php" class="flex flex-col items-center text-gray-400 hover:text-blue-600 transition">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

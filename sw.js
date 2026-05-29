@@ -1,18 +1,12 @@
-const CACHE_NAME = 'presensi-desa-v1';
-const urlsToCache = [
-  '/',
-  '/manifest.json',
-  'https://cdn.tailwindcss.com'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+self.addEventListener('install', (event) => {
+    console.log('[Service Worker] Terinstal');
+    self.skipWaiting();
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
+self.addEventListener('activate', (event) => {
+    console.log('[Service Worker] Aktif');
+});
+
+self.addEventListener('fetch', (event) => {
+    // Biarkan kosong. Ini cuma syarat wajib biar muncul tombol Install PWA.
 });

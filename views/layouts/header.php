@@ -8,11 +8,14 @@
     <title>Presensi Balai Desa</title>
 
     <!-- Link ke Manifest PWA -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/presensi-desa/manifest.json">
     <meta name="theme-color" content="#2563eb">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<!-- PWA Manifest -->
+<link rel="manifest" href="/presensi-desa/manifest.json">
+<meta name="theme-color" content="#2563eb">
 
 <body class="bg-gray-100 text-gray-800 antialiased min-h-screen flex flex-col">

@@ -1,108 +1,242 @@
 <?php
-// MATIKAN SEMUA ERROR DISPLAY (PENTING BIAR JSON TIDAK RUSAK!)
-error_reporting(0);
-ini_set('display_errors', 0);
-
-session_start();
 require_once '../config/database.php';
-require_once '../config/helper.php';
-
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['pegawai_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Sesi habis, silakan login ulang.']);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Sesi login Anda telah habis. Silakan login kembali.'
+    ]);
     exit;
 }
 
 $pegawai_id = $_SESSION['pegawai_id'];
-$tanggal_hari_ini = date('Y-m-d');
-$waktu_sekarang = date('H:i:s');
 
-// Tangkap data JSON dari JS
-$json = file_get_contents("php://input");
-$data = json_decode($json, true);
+// ===============================
+// KONFIGURASI LOKASI BALAI DESA
+// ===============================
+define('LAT_BALAI', -7.761405);
+define('LNG_BALAI', 109.445026);
+define('RADIUS_MAKSIMAL', 50);
+define('BATAS_AKURASI', 50);
 
-if (!$data) {
-    echo json_encode(["status" => "error", "message" => "Data tidak terkirim dengan benar."]);
-    exit;
+// ===============================
+// FUNGSI BANTU
+// ===============================
+function hitungJarakMeter($lat1, $lon1, $lat2, $lon2)
+{
+    $earthRadius = 6371000;
+
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLon = deg2rad($lon2 - $lon1);
+
+    $a = sin($dLat / 2) * sin($dLat / 2) +
+        cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+        sin($dLon / 2) * sin($dLon / 2);
+
+    $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    return $earthRadius * $c;
 }
 
-$jenis     = $data['jenis']; // 'masuk' atau 'pulang'
-$lat_user  = $data['latitude'];
-$lng_user  = $data['longitude'];
-$fotoBase64 = $data['foto'];
-
-// --- 1. CEK RADIUS GPS ---
-// (Batas saya bikin 999.999 meter biar kamu bisa ngetes dari rumah tanpa error)
-$lat_balai = -7.761405;
-$lng_balai = 109.445026;
-$jarak = hitungJarak($lat_user, $lng_user, $lat_balai, $lng_balai);
-$radius_maksimal = 999999;
-
-if ($jarak > $radius_maksimal) {
-    echo json_encode(["status" => "error", "message" => "Anda di luar radius Balai Desa! ($jarak meter)"]);
-    exit;
-}
-
-// --- 2. UPLOAD FOTO SELFIE ---
-try {
-    $image_parts = explode(";base64,", $fotoBase64);
-    $image_type_aux = explode("image/", $image_parts[0]);
-    $image_type = $image_type_aux[1];
-    $image_base64 = base64_decode($image_parts[1]);
-
-    $fileName = $pegawai_id . '_' . $jenis . '_' . time() . '.' . $image_type;
-    $folderPath = '../assets/img/uploads/';
-
-    if (!is_dir($folderPath)) {
-        mkdir($folderPath, 0777, true);
-    }
-
-    file_put_contents($folderPath . $fileName, $image_base64);
-} catch (Exception $e) {
-    echo json_encode(["status" => "error", "message" => "Gagal memproses foto kamera."]);
-    exit;
-}
-
-// --- 3. SIMPAN KE DATABASE ---
-$cek_query = "SELECT * FROM presensi WHERE pegawai_id = '$pegawai_id' AND tanggal = '$tanggal_hari_ini'";
-$cek_result = $conn->query($cek_query);
-
-if ($jenis == 'masuk') {
-    if ($cek_result->num_rows > 0) {
-        echo json_encode(["status" => "error", "message" => "Anda sudah melakukan absen masuk hari ini!"]);
-        exit;
-    }
-
-    $sql = "INSERT INTO presensi (pegawai_id, tanggal, jam_masuk, foto_masuk, lat_masuk, lng_masuk, status_kehadiran) 
-            VALUES ('$pegawai_id', '$tanggal_hari_ini', '$waktu_sekarang', '$fileName', '$lat_user', '$lng_user', 'Hadir')";
-} else if ($jenis == 'pulang') {
-    if ($cek_result->num_rows == 0) {
-        echo json_encode(["status" => "error", "message" => "Anda belum absen masuk hari ini!"]);
-        exit;
-    }
-
-    $row = $cek_result->fetch_assoc();
-    if ($row['jam_pulang'] != null) {
-        echo json_encode(["status" => "error", "message" => "Anda sudah absen pulang hari ini!"]);
-        exit;
-    }
-
-    $sql = "UPDATE presensi SET 
-            jam_pulang = '$waktu_sekarang', 
-            foto_pulang = '$fileName', 
-            lat_pulang = '$lat_user', 
-            lng_pulang = '$lng_user' 
-            WHERE pegawai_id = '$pegawai_id' AND tanggal = '$tanggal_hari_ini'";
-}
-
-// EKSEKUSI FINAL
-if ($conn->query($sql) === TRUE) {
+function kirimError($pesan)
+{
     echo json_encode([
-        "status" => "success",
-        "message" => "Berhasil absen $jenis! Jarak Anda: $jarak Meter."
+        'status' => 'error',
+        'message' => $pesan
     ]);
-} else {
-    echo json_encode(["status" => "error", "message" => "Gagal simpan ke database."]);
+    exit;
 }
-exit; // Pastikan tidak ada output HTML nyasar setelah ini
+
+function kirimSukses($pesan)
+{
+    echo json_encode([
+        'status' => 'success',
+        'message' => $pesan
+    ]);
+    exit;
+}
+
+// ===============================
+// AMBIL DATA JSON
+// ===============================
+$input = json_decode(file_get_contents("php://input"), true);
+
+if (!$input) {
+    kirimError('Data tidak valid.');
+}
+
+$jenis     = isset($input['jenis']) ? trim($input['jenis']) : '';
+$latitude  = isset($input['latitude']) ? (float)$input['latitude'] : 0;
+$longitude = isset($input['longitude']) ? (float)$input['longitude'] : 0;
+$accuracy  = isset($input['accuracy']) ? (float)$input['accuracy'] : 999;
+$foto      = isset($input['foto']) ? $input['foto'] : '';
+
+if (!in_array($jenis, ['masuk', 'pulang'])) {
+    kirimError('Jenis presensi tidak valid.');
+}
+
+if (empty($latitude) || empty($longitude)) {
+    kirimError('Lokasi GPS tidak ditemukan.');
+}
+
+if ($accuracy > BATAS_AKURASI) {
+    kirimError('Akurasi GPS masih lemah (' . round($accuracy) . ' meter). Dekatkan ke area terbuka lalu coba lagi.');
+}
+
+$jarak = hitungJarakMeter($latitude, $longitude, LAT_BALAI, LNG_BALAI);
+
+if ($jarak > RADIUS_MAKSIMAL) {
+    kirimError('Anda berada di luar radius absensi. Jarak Anda sekitar ' . round($jarak) . ' meter dari balai desa.');
+}
+
+if (empty($foto)) {
+    kirimError('Foto selfie wajib diambil.');
+}
+
+// ===============================
+// VALIDASI FOTO BASE64
+// ===============================
+if (!preg_match('/^data:image\/(\w+);base64,/', $foto, $type)) {
+    kirimError('Format foto tidak valid.');
+}
+
+$foto = substr($foto, strpos($foto, ',') + 1);
+$foto = base64_decode($foto);
+
+if ($foto === false) {
+    kirimError('Gagal membaca data foto.');
+}
+
+$ekstensi = strtolower($type[1]);
+if (!in_array($ekstensi, ['jpg', 'jpeg', 'png'])) {
+    $ekstensi = 'jpg';
+}
+
+// ===============================
+// FOLDER UPLOAD FOTO
+// ===============================
+$folderUpload = '../uploads/presensi/';
+if (!is_dir($folderUpload)) {
+    mkdir($folderUpload, 0777, true);
+}
+
+$namaFile = 'presensi_' . $pegawai_id . '_' . $jenis . '_' . date('Ymd_His') . '.' . $ekstensi;
+$pathFile = $folderUpload . $namaFile;
+
+if (!file_put_contents($pathFile, $foto)) {
+    kirimError('Gagal menyimpan foto presensi.');
+}
+
+$fotoDb = 'uploads/presensi/' . $namaFile;
+
+// ===============================
+// CEK PRESENSI HARI INI
+// ===============================
+$tanggalHariIni = date('Y-m-d');
+$jamSekarang = date('H:i:s');
+
+$queryCek = "SELECT * FROM presensi WHERE pegawai_id = ? AND tanggal = ? LIMIT 1";
+$stmtCek = $conn->prepare($queryCek);
+$stmtCek->bind_param("is", $pegawai_id, $tanggalHariIni);
+$stmtCek->execute();
+$resultCek = $stmtCek->get_result();
+$dataPresensi = $resultCek->fetch_assoc();
+
+// ===============================
+// ABSEN MASUK
+// ===============================
+if ($jenis === 'masuk') {
+    if ($dataPresensi && !empty($dataPresensi['jam_masuk'])) {
+        kirimError('Anda sudah melakukan absen masuk hari ini.');
+    }
+
+    if ($dataPresensi) {
+        $queryUpdateMasuk = "UPDATE presensi 
+                             SET jam_masuk = ?, 
+                                 foto_masuk = ?, 
+                                 lat_masuk = ?, 
+                                 lng_masuk = ?, 
+                                 accuracy_masuk = ?, 
+                                 status_kehadiran = 'Hadir'
+                             WHERE id = ?";
+        $stmtUpdateMasuk = $conn->prepare($queryUpdateMasuk);
+
+        $stmtUpdateMasuk->bind_param(
+            "ssdddi",
+            $jamSekarang,
+            $fotoDb,
+            $latitude,
+            $longitude,
+            $accuracy,
+            $dataPresensi['id']
+        );
+
+        if ($stmtUpdateMasuk->execute()) {
+            kirimSukses('Absen masuk berhasil disimpan.');
+        } else {
+            kirimError('Gagal menyimpan absen masuk ke database.');
+        }
+    } else {
+        $queryInsertMasuk = "INSERT INTO presensi 
+                            (pegawai_id, tanggal, jam_masuk, foto_masuk, lat_masuk, lng_masuk, accuracy_masuk, status_kehadiran)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Hadir')";
+        $stmtInsertMasuk = $conn->prepare($queryInsertMasuk);
+
+        $stmtInsertMasuk->bind_param(
+            "isssddd",
+            $pegawai_id,
+            $tanggalHariIni,
+            $jamSekarang,
+            $fotoDb,
+            $latitude,
+            $longitude,
+            $accuracy
+        );
+
+        if ($stmtInsertMasuk->execute()) {
+            kirimSukses('Absen masuk berhasil disimpan.');
+        } else {
+            kirimError('Gagal menyimpan absen masuk ke database.');
+        }
+    }
+}
+
+// ===============================
+// ABSEN PULANG
+// ===============================
+if ($jenis === 'pulang') {
+    if (!$dataPresensi || empty($dataPresensi['jam_masuk'])) {
+        kirimError('Anda belum melakukan absen masuk hari ini.');
+    }
+
+    if (!empty($dataPresensi['jam_pulang'])) {
+        kirimError('Anda sudah melakukan absen pulang hari ini.');
+    }
+
+    $queryUpdatePulang = "UPDATE presensi 
+                          SET jam_pulang = ?, 
+                              foto_pulang = ?, 
+                              lat_pulang = ?, 
+                              lng_pulang = ?, 
+                              accuracy_pulang = ?
+                          WHERE id = ?";
+    $stmtUpdatePulang = $conn->prepare($queryUpdatePulang);
+
+    $stmtUpdatePulang->bind_param(
+        "ssdddi",
+        $jamSekarang,
+        $fotoDb,
+        $latitude,
+        $longitude,
+        $accuracy,
+        $dataPresensi['id']
+    );
+
+    if ($stmtUpdatePulang->execute()) {
+        kirimSukses('Absen pulang berhasil disimpan.');
+    } else {
+        kirimError('Gagal menyimpan absen pulang ke database.');
+    }
+}
+
+kirimError('Permintaan tidak dikenali.');
