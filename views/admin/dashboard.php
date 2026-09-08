@@ -202,7 +202,7 @@ $result_tabel = $conn->query($query_tabel);
                 <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-200/80">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-rose-600 mb-1">Belum Absen</p>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-rose-600 mb-1">Belum Presensi</p>
                             <h3 class="text-2xl font-black text-rose-600"><?= $belum_absen ?></h3>
                         </div>
                         <div class="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100">
@@ -251,7 +251,7 @@ $result_tabel = $conn->query($query_tabel);
 
                                         <td class="px-6 py-4">
                                             <?php if (!$row['status_kehadiran']): ?>
-                                                <span class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-xl text-xs font-semibold">Belum Absen</span>
+                                                <span class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-xl text-xs font-semibold">Belum Presensi</span>
                                             <?php elseif ($row['status_kehadiran'] == 'Hadir'): ?>
                                                 <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold">Hadir</span>
                                             <?php else: ?>

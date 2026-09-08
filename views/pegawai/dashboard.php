@@ -126,7 +126,7 @@ if ($result_absen && $result_absen->num_rows > 0) {
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-5 gap-3">
                     <div>
-                        <h2 class="text-slate-900 font-bold text-base">Absensi Hari Ini</h2>
+                        <h2 class="text-slate-900 font-bold text-base">Presensi Hari Ini</h2>
                         <p class="text-xs text-slate-500 mt-0.5"><?= htmlspecialchars($info_presensi) ?></p>
                     </div>
                     <span class="text-xs font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl self-start sm:self-auto">
