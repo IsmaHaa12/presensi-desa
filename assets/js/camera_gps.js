@@ -7,14 +7,6 @@ let accuracy = null;
 let jarakKeBalai = null;
 
 // ===============================
-// KONFIGURASI LOKASI
-// ===============================
-const LAT_BALAI = -7.761405;
-const LNG_BALAI = 109.445026;
-const RADIUS_MAKSIMAL = 50;   // radius absensi dalam meter
-const BATAS_AKURASI = 50;     // akurasi GPS maksimal yang masih dianggap layak
-
-// ===============================
 // ELEMEN UI
 // ===============================
 const btnMasuk = document.getElementById('btnMasuk');
