@@ -19,19 +19,22 @@ $username        = $data_pegawai['username'] ?? '-';
 $created_at      = $data_pegawai['created_at'] ?? date('Y-m-d');
 
 // =========================
-// STATISTIK PRESENSI
+// STATISTIK PRESENSI (SUDAH DISESUAIKAN)
 // =========================
 
 // Total Hadir
 $query_hadir = "SELECT COUNT(*) as total FROM presensi 
                 WHERE pegawai_id = '$pegawai_id' 
-                AND status_kehadiran = 'Hadir'";
+                AND (status_kehadiran = 'Hadir' OR status_kehadiran = 'Terlambat')";
 $total_hadir = $conn->query($query_hadir)->fetch_assoc()['total'] ?? 0;
 
-// Total Izin / Sakit
+// Total Izin / Sakit / Cuti / Dinas Luar (Menggunakan LIKE agar teks dinamis terbaca)
 $query_izin = "SELECT COUNT(*) as total FROM presensi 
                WHERE pegawai_id = '$pegawai_id' 
-               AND status_kehadiran IN ('Izin', 'Sakit', 'Cuti', 'Dinas Luar')";
+               AND (status_kehadiran LIKE 'Izin%' 
+                    OR status_kehadiran LIKE 'Sakit%' 
+                    OR status_kehadiran LIKE 'Cuti%' 
+                    OR status_kehadiran LIKE 'Dinas Luar%')";
 $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
 
 // Total presensi
@@ -42,8 +45,8 @@ $total_presensi = $conn->query($query_total)->fetch_assoc()['total'] ?? 0;
 // Cek absen hari ini
 $tanggal_db = date('Y-m-d');
 $query_hari_ini = "SELECT COUNT(*) as total FROM presensi 
-                   WHERE pegawai_id = '$pegawai_id' 
-                   AND tanggal = '$tanggal_db'";
+                    WHERE pegawai_id = '$pegawai_id' 
+                    AND tanggal = '$tanggal_db'";
 $cek_hari_ini = $conn->query($query_hari_ini)->fetch_assoc()['total'] ?? 0;
 $belum_absen_hari_ini = ($cek_hari_ini > 0) ? 0 : 1;
 
@@ -112,7 +115,7 @@ $persentase_kehadiran = ($total_presensi > 0)
                 </div>
             </div>
 
-            <!-- Detail Informasi Akun (Tambahan agar lebih berisi) -->
+            <!-- Detail Informasi Akun -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6">
                 <h3 class="text-slate-900 font-bold text-base mb-4">Informasi Akun</h3>
 

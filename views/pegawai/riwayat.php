@@ -51,25 +51,25 @@ $query_riwayat = "
 ";
 $result_riwayat = $conn->query($query_riwayat);
 
-// Hitung total hadir bulan ini
+// Hitung total hadir bulan ini (Hadir atau Terlambat)
 $query_hadir = "
     SELECT COUNT(*) as total 
     FROM presensi 
     WHERE pegawai_id = '$pegawai_id' 
     AND MONTH(tanggal) = '$bulan_filter' 
     AND YEAR(tanggal) = '$tahun_filter' 
-    AND status_kehadiran = 'Hadir'
+    AND (status_kehadiran = 'Hadir' OR status_kehadiran = 'Terlambat')
 ";
 $total_hadir = $conn->query($query_hadir)->fetch_assoc()['total'] ?? 0;
 
-// Hitung total izin/sakit bulan ini
+// Hitung total izin/sakit bulan ini (Menggunakan LIKE agar fleksibel)
 $query_izin = "
     SELECT COUNT(*) as total 
     FROM presensi 
     WHERE pegawai_id = '$pegawai_id' 
     AND MONTH(tanggal) = '$bulan_filter' 
     AND YEAR(tanggal) = '$tahun_filter' 
-    AND status_kehadiran IN ('Izin', 'Sakit', 'Cuti', 'Dinas Luar')
+    AND (status_kehadiran LIKE 'Izin%' OR status_kehadiran LIKE 'Sakit%' OR status_kehadiran LIKE 'Cuti%' OR status_kehadiran LIKE 'Dinas Luar%')
 ";
 $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
 ?>
@@ -192,8 +192,8 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                                 </div>
 
                                 <div>
-                                    <?php if ($row['status_kehadiran'] == 'Hadir'): ?>
-                                        <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold">Hadir</span>
+                                    <?php if ($row['status_kehadiran'] == 'Hadir' || $row['status_kehadiran'] == 'Terlambat'): ?>
+                                        <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
                                     <?php else: ?>
                                         <span class="bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-xl text-xs font-semibold">
                                             <?= htmlspecialchars($row['status_kehadiran']) ?>
@@ -209,13 +209,13 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                                     <?php if (!empty($row['jam_masuk'])): ?>
                                         <p class="text-lg font-bold text-slate-800 mb-2"><?= date('H:i', strtotime($row['jam_masuk'])) ?></p>
                                         <?php if (!empty($row['foto_masuk'])): ?>
-                                            <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_masuk']) ?>" target="_blank" class="inline-flex items-center text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition shadow-sm">
+                                            <button onclick="openPhotoModal('../../<?= htmlspecialchars($row['foto_masuk']) ?>', 'Bukti Foto Masuk - <?= $tanggal_angka ?> <?= $bulan_tahun ?>')" class="inline-flex items-center text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition shadow-sm">
                                                 <svg class="w-3.5 h-3.5 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                 </svg>
                                                 Lihat Foto
-                                            </a>
+                                            </button>
                                         <?php endif; ?>
                                     <?php else: ?>
                                         <p class="text-base font-semibold text-slate-400 italic">--:--</p>
@@ -227,13 +227,13 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                                     <?php if (!empty($row['jam_pulang'])): ?>
                                         <p class="text-lg font-bold text-slate-800 mb-2"><?= date('H:i', strtotime($row['jam_pulang'])) ?></p>
                                         <?php if (!empty($row['foto_pulang'])): ?>
-                                            <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_pulang']) ?>" target="_blank" class="inline-flex items-center text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition shadow-sm">
+                                            <button onclick="openPhotoModal('../../<?= htmlspecialchars($row['foto_pulang']) ?>', 'Bukti Foto Pulang - <?= $tanggal_angka ?> <?= $bulan_tahun ?>')" class="inline-flex items-center text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition shadow-sm">
                                                 <svg class="w-3.5 h-3.5 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                 </svg>
                                                 Lihat Foto
-                                            </a>
+                                            </button>
                                         <?php endif; ?>
                                     <?php else: ?>
                                         <p class="text-base font-semibold text-slate-400 italic">--:--</p>
@@ -276,5 +276,52 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
     </nav>
 
 </div>
+
+<!-- MODAL POP-UP PREVIEW FOTO -->
+<div id="photoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-3xl p-6 max-w-lg w-full mx-4 shadow-xl border border-slate-200 relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="modalTitle" class="font-bold text-slate-900 text-base">Bukti Foto Presensi</h3>
+            <button onclick="closePhotoModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px]">
+            <img id="modalImage" src="" alt="Foto Presensi" class="max-h-[70vh] w-auto object-contain">
+        </div>
+        <div class="mt-4 flex justify-end">
+            <button onclick="closePhotoModal()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPhotoModal(url, title) {
+        const modal = document.getElementById('photoModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalTitle = document.getElementById('modalTitle');
+
+        modalImage.src = url;
+        modalTitle.innerText = title;
+        modal.classList.remove('hidden');
+    }
+
+    function closePhotoModal() {
+        const modal = document.getElementById('photoModal');
+        modal.classList.add('hidden');
+        document.getElementById('modalImage').src = '';
+    }
+
+    // Tutup modal kalau klik di luar area modal
+    document.getElementById('photoModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePhotoModal();
+        }
+    });
+</script>
 
 <?php include '../layouts/footer.php'; ?>

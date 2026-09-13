@@ -32,14 +32,14 @@ $query_laporan = "
 ";
 $result_laporan = $conn->query($query_laporan);
 
-// --- 2. HITUNG STATISTIK UNTUK BAGIAN KETERANGAN BAWAH ---
+// --- 2. HITUNG STATISTIK UNTUK BAGIAN KETERANGAN BAWAH (DISESUAIKAN DENGAN LIKE) ---
 $query_stat = "SELECT 
     (SELECT COUNT(*) FROM pegawai WHERE role = 'pegawai') as total_pegawai,
-    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran = 'Hadir') as hadir,
-    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran = 'Izin') as izin,
-    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran = 'Sakit') as sakit,
-    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran = 'Cuti') as cuti,
-    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran = 'Dinas Luar') as dinas
+    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND (status_kehadiran = 'Hadir' OR status_kehadiran = 'Terlambat')) as hadir,
+    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran LIKE 'Izin%') as izin,
+    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran LIKE 'Sakit%') as sakit,
+    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran LIKE 'Cuti%') as cuti,
+    (SELECT COUNT(*) FROM presensi WHERE tanggal = '$tanggal_filter' AND status_kehadiran LIKE 'Dinas Luar%') as dinas
 ";
 $stat = $conn->query($query_stat)->fetch_assoc();
 
@@ -50,6 +50,7 @@ $sakit = $stat['sakit'];
 $cuti = $stat['cuti'];
 $dinas = $stat['dinas'];
 $tanpa_keterangan = $total_pegawai - ($hadir + $izin + $sakit + $cuti + $dinas);
+if ($tanpa_keterangan < 0) $tanpa_keterangan = 0;
 $tidak_hadir = $total_pegawai - $hadir;
 ?>
 
@@ -295,7 +296,7 @@ $tidak_hadir = $total_pegawai - $hadir;
 
                                     <!-- Jam Masuk -->
                                     <td class="text-center border border-black p-1.5">
-                                        <?php if ($row['jam_masuk']) {
+                                        <?php if ($row['jam_masuk'] && $row['jam_masuk'] != '-') {
                                             echo date('H.i', strtotime($row['jam_masuk']));
                                         } else {
                                             echo "-";
@@ -304,22 +305,30 @@ $tidak_hadir = $total_pegawai - $hadir;
 
                                     <!-- Jam Pulang -->
                                     <td class="text-center border border-black p-1.5">
-                                        <?php if ($row['jam_pulang']) {
+                                        <?php if ($row['jam_pulang'] && $row['jam_pulang'] != '-') {
                                             echo date('H.i', strtotime($row['jam_pulang']));
                                         } else {
                                             echo "-";
                                         } ?>
                                     </td>
 
-                                    <!-- Keterangan (Sakit, Izin, TK) -->
+                                    <!-- Keterangan (Sakit, Izin, TK secara fleksibel dengan stripos) -->
                                     <td class="text-center font-bold border border-black p-1.5">
                                         <?php
-                                        if ($row['status_kehadiran'] == 'Izin') echo 'I';
-                                        else if ($row['status_kehadiran'] == 'Sakit') echo 'S';
-                                        else if ($row['status_kehadiran'] == 'Cuti') echo 'C';
-                                        else if ($row['status_kehadiran'] == 'Dinas Luar') echo 'D';
-                                        else if (!$row['status_kehadiran']) echo 'TK';
-                                        else echo '';
+                                        $status = $row['status_kehadiran'];
+                                        if (!$status) {
+                                            echo 'TK';
+                                        } else if (stripos($status, 'Izin') === 0 || stripos($status, 'Ijin') === 0) {
+                                            echo 'I';
+                                        } else if (stripos($status, 'Sakit') === 0) {
+                                            echo 'S';
+                                        } else if (stripos($status, 'Cuti') === 0) {
+                                            echo 'C';
+                                        } else if (stripos($status, 'Dinas Luar') === 0 || stripos($status, 'Dinas') === 0) {
+                                            echo 'D';
+                                        } else {
+                                            echo '';
+                                        }
                                         ?>
                                     </td>
                                 </tr>

@@ -10,21 +10,22 @@ if (!isset($_SESSION['pegawai_id']) || $_SESSION['role'] != 'admin') {
 $nama_admin = $_SESSION['nama'];
 $tanggal_hari_ini = date('Y-m-d');
 
-// --- MENGAMBIL DATA STATISTIK DARI DATABASE ---
+// --- MENGAMBIL DATA STATISTIK DARI DATABASE (DISESUAIKAN) ---
 // 1. Total Pegawai (Selain Admin)
 $query_total = "SELECT COUNT(*) as total FROM pegawai WHERE role = 'pegawai'";
 $total_pegawai = $conn->query($query_total)->fetch_assoc()['total'];
 
-// 2. Total Hadir Hari Ini
-$query_hadir = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND status_kehadiran = 'Hadir'";
+// 2. Total Hadir Hari Ini (Hadir atau Terlambat)
+$query_hadir = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND (status_kehadiran = 'Hadir' OR status_kehadiran = 'Terlambat')";
 $total_hadir = $conn->query($query_hadir)->fetch_assoc()['total'];
 
-// 3. Total Izin/Sakit Hari Ini
-$query_izin = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND status_kehadiran IN ('Izin', 'Sakit', 'Cuti', 'Dinas Luar')";
+// 3. Total Izin/Sakit Hari Ini (Menggunakan LIKE agar teks dinamis terbaca)
+$query_izin = "SELECT COUNT(*) as total FROM presensi WHERE tanggal = '$tanggal_hari_ini' AND (status_kehadiran LIKE 'Izin%' OR status_kehadiran LIKE 'Sakit%' OR status_kehadiran LIKE 'Cuti%' OR status_kehadiran LIKE 'Dinas Luar%')";
 $total_izin = $conn->query($query_izin)->fetch_assoc()['total'];
 
-// 4. Belum Absen
+// 4. Belum Absen (Total pegawai dikurangi yang sudah hadir dan yang sudah izin/sakit)
 $belum_absen = $total_pegawai - ($total_hadir + $total_izin);
+if ($belum_absen < 0) $belum_absen = 0;
 
 // --- MENGAMBIL DATA TABEL PRESENSI HARI INI ---
 $query_tabel = "
@@ -73,7 +74,7 @@ $result_tabel = $conn->query($query_tabel);
 
 <body class="bg-slate-50 antialiased text-slate-800">
 
-    <!-- SIDEBAR KIRI (Responsive: Hidden on mobile, toggleable or drawer can be added if needed, desktop fixed) -->
+    <!-- SIDEBAR KIRI -->
     <aside class="w-64 bg-slate-900 h-screen fixed top-0 left-0 shadow-sm flex flex-col z-20 hidden md:flex">
         <!-- Logo/Judul -->
         <div class="h-16 flex items-center justify-center border-b border-slate-800 bg-slate-950">
@@ -112,7 +113,7 @@ $result_tabel = $conn->query($query_tabel);
             <!-- Menu Pengaturan Sistem -->
             <a href="pengaturan.php" class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800/60 hover:text-white rounded-2xl transition-all group mt-6">
                 <svg class="w-5 h-5 mr-3 text-slate-400 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756.2924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
                 <span class="text-xs font-semibold">Pengaturan Sistem</span>
@@ -242,38 +243,38 @@ $result_tabel = $conn->query($query_tabel);
                                         </td>
 
                                         <td class="px-6 py-4 font-semibold text-slate-700 text-xs">
-                                            <?= $row['jam_masuk'] ? date('H:i', strtotime($row['jam_masuk'])) . ' WIB' : '<span class="text-slate-400 font-normal italic">--:--</span>' ?>
+                                            <?= $row['jam_masuk'] && $row['jam_masuk'] != '-' ? date('H:i', strtotime($row['jam_masuk'])) . ' WIB' : '<span class="text-slate-400 font-normal italic">--:--</span>' ?>
                                         </td>
 
                                         <td class="px-6 py-4 font-semibold text-slate-700 text-xs">
-                                            <?= $row['jam_pulang'] ? date('H:i', strtotime($row['jam_pulang'])) . ' WIB' : '<span class="text-slate-400 font-normal italic">--:--</span>' ?>
+                                            <?= $row['jam_pulang'] && $row['jam_pulang'] != '-' ? date('H:i', strtotime($row['jam_pulang'])) . ' WIB' : '<span class="text-slate-400 font-normal italic">--:--</span>' ?>
                                         </td>
 
                                         <td class="px-6 py-4">
                                             <?php if (!$row['status_kehadiran']): ?>
                                                 <span class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-xl text-xs font-semibold">Belum Presensi</span>
-                                            <?php elseif ($row['status_kehadiran'] == 'Hadir'): ?>
-                                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold">Hadir</span>
+                                            <?php elseif ($row['status_kehadiran'] == 'Hadir' || $row['status_kehadiran'] == 'Terlambat'): ?>
+                                                <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
                                             <?php else: ?>
                                                 <span class="bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
                                             <?php endif; ?>
                                         </td>
 
-                                        <!-- Kolom Aksi (Tombol FOTO) -->
+                                        <!-- Kolom Aksi (Tombol FOTO Pop-up) -->
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex justify-center gap-2">
                                                 <!-- Jika ada foto masuk -->
                                                 <?php if ($row['foto_masuk']): ?>
-                                                    <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_masuk']) ?>" target="_blank" class="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition whitespace-nowrap shadow-sm">
+                                                    <button onclick="openPhotoModal('../../<?= htmlspecialchars($row['foto_masuk']) ?>', 'Bukti Foto Masuk - <?= htmlspecialchars($row['nama']) ?>')" class="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition whitespace-nowrap shadow-sm">
                                                         FOTO MASUK
-                                                    </a>
+                                                    </button>
                                                 <?php endif; ?>
 
                                                 <!-- Jika ada foto pulang -->
                                                 <?php if ($row['foto_pulang']): ?>
-                                                    <a href="../../assets/img/uploads/<?= htmlspecialchars($row['foto_pulang']) ?>" target="_blank" class="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition whitespace-nowrap shadow-sm">
+                                                    <button onclick="openPhotoModal('../../<?= htmlspecialchars($row['foto_pulang']) ?>', 'Bukti Foto Pulang - <?= htmlspecialchars($row['nama']) ?>')" class="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition whitespace-nowrap shadow-sm">
                                                         FOTO PULANG
-                                                    </a>
+                                                    </button>
                                                 <?php endif; ?>
 
                                                 <!-- Jika belum ada foto sama sekali -->
@@ -299,6 +300,53 @@ $result_tabel = $conn->query($query_tabel);
 
         </main>
     </div>
+
+    <!-- MODAL POP-UP PREVIEW FOTO -->
+    <div id="photoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-lg w-full mx-4 shadow-xl border border-slate-200 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="font-bold text-slate-900 text-base">Bukti Foto Presensi</h3>
+                <button onclick="closePhotoModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px]">
+                <img id="modalImage" src="" alt="Foto Presensi" class="max-h-[70vh] w-auto object-contain">
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="closePhotoModal()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPhotoModal(url, title) {
+            const modal = document.getElementById('photoModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+
+            modalImage.src = url;
+            modalTitle.innerText = title;
+            modal.classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            const modal = document.getElementById('photoModal');
+            modal.classList.add('hidden');
+            document.getElementById('modalImage').src = '';
+        }
+
+        // Tutup modal kalau klik di luar area modal
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePhotoModal();
+            }
+        });
+    </script>
 
 </body>
 

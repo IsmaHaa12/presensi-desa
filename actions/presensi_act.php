@@ -13,12 +13,24 @@ if (!isset($_SESSION['pegawai_id'])) {
 $pegawai_id = $_SESSION['pegawai_id'];
 
 // ===============================
-// KONFIGURASI LOKASI BALAI DESA
+// KONFIGURASI LOKASI BALAI DESA (DINAMIS DARI DATABASE)
 // ===============================
-define('LAT_BALAI', -7.761405);
-define('LNG_BALAI', 109.445026);
-define('RADIUS_MAKSIMAL', 50);
-define('BATAS_AKURASI', 50);
+$query_setting = "SELECT * FROM pengaturan_sistem LIMIT 1";
+$result_setting = $conn->query($query_setting);
+
+if ($result_setting && $result_setting->num_rows > 0) {
+    $setting = $result_setting->fetch_assoc();
+    define('LAT_BALAI', (float)$setting['lat_balai']);
+    define('LNG_BALAI', (float)$setting['lng_balai']);
+    define('RADIUS_MAKSIMAL', (int)$setting['radius_maksimal']);
+    define('BATAS_AKURASI', (int)$setting['batas_akurasi']);
+} else {
+    // Nilai fallback (cadangan) jika tabel pengaturan kosong
+    define('LAT_BALAI', -7.761405);
+    define('LNG_BALAI', 109.445026);
+    define('RADIUS_MAKSIMAL', 50);
+    define('BATAS_AKURASI', 50);
+}
 
 // ===============================
 // FUNGSI BANTU
