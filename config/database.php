@@ -1,9 +1,12 @@
 <?php
-// Paksa session berjalan di semua IP/domain akses
-ini_set('session.cookie_domain', ''); // Kosongkan domain biar session berlaku di semua IP
-ini_set('session.cookie_samesite', 'Lax'); // Izinkan session lintas akses lokal
+// config/database.php - Dilengkapi pengecekan session agar aman dan tidak warning
 
-session_start(); // Mulai session untuk nyimpan data login
+// Mulai session hanya jika belum aktif sama sekali
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_domain', '');
+    ini_set('session.cookie_samesite', 'Lax');
+    session_start();
+}
 
 $host = 'localhost';
 $user = 'root';
@@ -18,3 +21,4 @@ if ($conn->connect_error) {
 
 // Set timezone ke WIB
 date_default_timezone_set('Asia/Jakarta');
+?>

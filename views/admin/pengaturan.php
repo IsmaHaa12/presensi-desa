@@ -14,21 +14,6 @@ $admin_id = $_SESSION['pegawai_id'];
 $query_admin = "SELECT * FROM pegawai WHERE id = '$admin_id' LIMIT 1";
 $data_admin = $conn->query($query_admin)->fetch_assoc();
 
-// Ambil data pengaturan sistem yang aktif (ID = 1)
-$query_setting = "SELECT * FROM pengaturan_sistem WHERE id = 1 LIMIT 1";
-$result_setting = $conn->query($query_setting);
-if ($result_setting->num_rows > 0) {
-    $setting = $result_setting->fetch_assoc();
-} else {
-    // Fallback jika tabel kosong
-    $setting = [
-        'lat_balai' => -7.761405,
-        'lng_balai' => 109.445026,
-        'radius_maksimal' => 50,
-        'batas_akurasi' => 50
-    ];
-}
-
 // Proses jika form di-submit
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
@@ -46,26 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $data_admin = $conn->query($query_admin)->fetch_assoc();
         } else {
             $error = "Gagal memperbarui profil: " . $conn->error;
-        }
-    } elseif ($action == 'update_lokasi') {
-        $lat_balai = $conn->real_escape_string($_POST['lat_balai']);
-        $lng_balai = $conn->real_escape_string($_POST['lng_balai']);
-        $radius_maksimal = (int)$_POST['radius_maksimal'];
-        $batas_akurasi = (int)$_POST['batas_akurasi'];
-
-        // Cek apakah data pengaturan sudah ada
-        $check = $conn->query("SELECT id FROM pengaturan_sistem WHERE id = 1");
-        if ($check->num_rows > 0) {
-            $sql_lokasi = "UPDATE pengaturan_sistem SET lat_balai = '$lat_balai', lng_balai = '$lng_balai', radius_maksimal = '$radius_maksimal', batas_akurasi = '$batas_akurasi' WHERE id = 1";
-        } else {
-            $sql_lokasi = "INSERT INTO pengaturan_sistem (id, lat_balai, lng_balai, radius_maksimal, batas_akurasi) VALUES (1, '$lat_balai', '$lng_balai', '$radius_maksimal', '$batas_akurasi')";
-        }
-
-        if ($conn->query($sql_lokasi) === TRUE) {
-            $sukses = "Pengaturan koordinat dan radius presensi berhasil diperbarui.";
-            $setting = $conn->query($query_setting)->fetch_assoc();
-        } else {
-            $error = "Gagal memperbarui koordinat: " . $conn->error;
         }
     } elseif ($action == 'update_password') {
         $password_lama = $_POST['password_lama'];
@@ -211,9 +176,8 @@ $total_presensi_count = $conn->query("SELECT COUNT(*) as total FROM presensi")->
             <!-- Grid Pengaturan -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <!-- Kolom Kiri & Tengah: Edit Profil & Titik Lokasi Kantor -->
+                <!-- Kolom Kiri: Edit Profil Admin -->
                 <div class="lg:col-span-2 space-y-6">
-                    <!-- Edit Profil Admin -->
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
                         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
                             <h3 class="font-bold text-slate-900 text-sm">Informasi Profil Admin</h3>
@@ -247,53 +211,21 @@ $total_presensi_count = $conn->query("SELECT COUNT(*) as total FROM presensi")->
                         </form>
                     </div>
 
-                    <!-- Pengaturan Koordinat GPS & Radius Kantor -->
-                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-                        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-                            <h3 class="font-bold text-slate-900 text-sm">Titik Koordinat & Radius Kantor (Balai Desa)</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Atur titik pusat lokasi GPS dan batas radius maksimal absen pegawai.</p>
-                        </div>
-
-                        <form action="" method="POST" class="p-6 space-y-4">
-                            <input type="hidden" name="action" value="update_lokasi">
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Latitude Kantor</label>
-                                    <input type="text" name="lat_balai" value="<?= htmlspecialchars($setting['lat_balai']) ?>" required class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent transition">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Longitude Kantor</label>
-                                    <input type="text" name="lng_balai" value="<?= htmlspecialchars($setting['lng_balai']) ?>" required class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent transition">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Radius Maksimal (Meter)</label>
-                                    <input type="number" name="radius_maksimal" value="<?= htmlspecialchars($setting['radius_maksimal']) ?>" required class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent transition">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Batas Akurasi GPS (Meter)</label>
-                                    <input type="number" name="batas_akurasi" value="<?= htmlspecialchars($setting['batas_akurasi']) ?>" required class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-slate-900 focus:border-transparent transition">
-                                </div>
-                            </div>
-
-                            <div class="pt-2">
-                                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-3.5 px-6 rounded-2xl shadow-sm transition active:scale-[0.98]">
-                                    Simpan Pengaturan Lokasi
-                                </button>
-                            </div>
-                        </form>
+                    <!-- Informasi Sistem Berbasis QR Code -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden p-6 space-y-3">
+                        <h3 class="font-bold text-slate-900 text-sm">Informasi Sistem Presensi</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            Sistem presensi saat ini berjalan menggunakan metode <b>QR Code Statis</b> dengan validasi otomatis dan swafoto (selfie). Pengaturan koordinat GPS dan radius sudah tidak digunakan karena absensi kini terpusat melalui pemindaian QR Code di kantor desa.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Informasi Sistem -->
+                <!-- Kolom Kanan: Informasi Statistik Sistem -->
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col justify-between">
                     <div>
                         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-                            <h3 class="font-bold text-slate-900 text-sm">Informasi Sistem</h3>
-                            <p class="text-xs text-slate-400 mt-0.5">Ringkasan data operasional desa.</p>
+                            <h3 class="font-bold text-slate-900 text-sm">Ringkasan Sistem</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Statistik data operasional desa.</p>
                         </div>
 
                         <div class="p-6 space-y-4 text-sm">
@@ -306,12 +238,12 @@ $total_presensi_count = $conn->query("SELECT COUNT(*) as total FROM presensi")->
                                 <span class="font-bold text-slate-900"><?= $total_admin_count ?> Akun</span>
                             </div>
                             <div class="flex justify-between items-center py-2 border-b border-slate-100">
-                                <span class="text-slate-400 font-medium text-xs">Total Log Presensi Masuk</span>
+                                <span class="text-slate-400 font-medium text-xs">Total Log Presensi</span>
                                 <span class="font-bold text-slate-900"><?= $total_presensi_count ?> Data</span>
                             </div>
                             <div class="flex justify-between items-center py-2">
                                 <span class="text-slate-400 font-medium text-xs">Versi Aplikasi</span>
-                                <span class="font-bold text-slate-900">v2.1 Pro</span>
+                                <span class="font-bold text-slate-900">v3.0 QR Pro</span>
                             </div>
                         </div>
                     </div>
