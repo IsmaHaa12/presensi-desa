@@ -217,18 +217,28 @@ $result_tabel = $conn->query($query_tabel);
                 </div>
             </div>
 
-            <!-- TOMBOL POP-UP QR CODE DI BAWAH STATISTIK -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <!-- TOMBOL POP-UP QR CODE MASUK & PULANG DI BAWAH STATISTIK -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-sm">Tampilkan QR Code Presensi Kantor</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Buka pop-up QR Code ini di layar monitor/proyektor balai desa saat jam masuk dan pulang.</p>
+                    <h3 class="font-bold text-slate-900 text-sm">Pusat QR Code Presensi Kantor</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Pilih QR Code Masuk atau Pulang untuk ditampilkan di layar monitor/proyektor balai desa.</p>
                 </div>
-                <button onclick="openQrModal()" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 rounded-2xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8H2a1 1 0 00-1 1v3a1 1 0 001 1h3m10-6h3a1 1 0 011 1v3a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1v-3a1 1 0 00-1-1H9z"></path>
-                    </svg>
-                    Tampilkan QR Code
-                </button>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <!-- Tombol QR Masuk -->
+                    <button onclick="openQrModal('masuk')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                        </svg>
+                        Tampilkan QR Masuk
+                    </button>
+                    <!-- Tombol QR Pulang -->
+                    <button onclick="openQrModal('pulang')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Tampilkan QR Pulang
+                    </button>
+                </div>
             </div>
 
             <!-- Tabel Data Absensi Terkini -->
@@ -317,28 +327,55 @@ $result_tabel = $conn->query($query_tabel);
         </main>
     </div>
 
-    <!-- MODAL POP-UP QR CODE ADMIN (AUTO-GENERATE JS) -->
-    <div id="qrModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+    <!-- MODAL POP-UP QR CODE MASUK -->
+    <div id="qrModalMasuk" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-slate-200 relative text-center">
-            <button onclick="closeQrModal()" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+            <button onclick="closeQrModal('masuk')" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
 
-            <h3 class="font-bold text-slate-900 text-base mb-1">QR Code Presensi Kantor</h3>
-            <p class="text-xs text-slate-500 mb-4">Arahkan kamera smartphone perangkat desa ke layar ini.</p>
+            <h3 class="font-bold text-slate-900 text-base mb-1">QR Code Presensi Masuk</h3>
+            <p class="text-xs text-slate-500 mb-4">Arahkan kamera smartphone perangkat desa ke layar ini untuk absen masuk.</p>
 
-            <!-- TEMPAT AUTO-GENERATE QR CODE -->
+            <!-- TEMPAT AUTO-GENERATE QR CODE MASUK -->
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-center items-center mb-4 min-h-[230px]">
-                <div id="qrcode" class="flex justify-center items-center"></div>
+                <div id="qrcode_masuk" class="flex justify-center items-center"></div>
             </div>
 
-            <div class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 py-2 px-3 rounded-xl mb-4">
+            <div class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 py-2 px-3 rounded-xl mb-4">
                 Balai Desa Pasir, Kec. Ayah, Kab. Kebumen
             </div>
 
-            <button onclick="closeQrModal()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition shadow-sm">
+            <button onclick="closeQrModal('masuk')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition shadow-sm">
+                Tutup Tampilan
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL POP-UP QR CODE PULANG -->
+    <div id="qrModalPulang" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-slate-200 relative text-center">
+            <button onclick="closeQrModal('pulang')" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <h3 class="font-bold text-slate-900 text-base mb-1">QR Code Presensi Pulang</h3>
+            <p class="text-xs text-slate-500 mb-4">Arahkan kamera smartphone perangkat desa ke layar ini untuk absen pulang.</p>
+
+            <!-- TEMPAT AUTO-GENERATE QR CODE PULANG -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-center items-center mb-4 min-h-[230px]">
+                <div id="qrcode_pulang" class="flex justify-center items-center"></div>
+            </div>
+
+            <div class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 py-2 px-3 rounded-xl mb-4">
+                Balai Desa Pasir, Kec. Ayah, Kab. Kebumen
+            </div>
+
+            <button onclick="closeQrModal('pulang')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition shadow-sm">
                 Tutup Tampilan
             </button>
         </div>
@@ -368,28 +405,46 @@ $result_tabel = $conn->query($query_tabel);
 
     <!-- SCRIPT JAVASCRIPT MODAL & AUTO-GENERATE QR -->
     <script>
-        let qrInitialized = false;
+        let qrMasukInitialized = false;
+        let qrPulangInitialized = false;
 
-        // Fungsi Buka Modal & Generate QR Code Otomatis
-        function openQrModal() {
-            document.getElementById('qrModal').classList.remove('hidden');
-
-            // Generate QR code otomatis saat modal pertama kali dibuka
-            if (!qrInitialized) {
-                new QRCode(document.getElementById("qrcode"), {
-                    text: "PRESENSI_DESA_PASIR_VALID", // Teks rahasia yang wajib sama dengan pegawai
-                    width: 200, // Lebar pixel QR
-                    height: 200, // Tinggi pixel QR
-                    colorDark: "#0f172a", // Warna hitam QR (Slate 900)
-                    colorLight: "#ffffff", // Warna background putih
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-                qrInitialized = true;
+        // Fungsi Buka Modal & Generate QR Code Otomatis Berdasarkan Jenisnya
+        function openQrModal(jenis) {
+            if (jenis === 'masuk') {
+                document.getElementById('qrModalMasuk').classList.remove('hidden');
+                if (!qrMasukInitialized) {
+                    new QRCode(document.getElementById("qrcode_masuk"), {
+                        text: "PRESENSI_MASUK_DESA_PASIR_VALID", // Token khusus Presensi Masuk
+                        width: 200,
+                        height: 200,
+                        colorDark: "#065f46", // Warna hijau tua
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    qrMasukInitialized = true;
+                }
+            } else if (jenis === 'pulang') {
+                document.getElementById('qrModalPulang').classList.remove('hidden');
+                if (!qrPulangInitialized) {
+                    new QRCode(document.getElementById("qrcode_pulang"), {
+                        text: "PRESENSI_PULANG_DESA_PASIR_VALID", // Token khusus Presensi Pulang
+                        width: 200,
+                        height: 200,
+                        colorDark: "#3730a3", // Warna ungu/indigo tua
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    qrPulangInitialized = true;
+                }
             }
         }
 
-        function closeQrModal() {
-            document.getElementById('qrModal').classList.add('hidden');
+        function closeQrModal(jenis) {
+            if (jenis === 'masuk') {
+                document.getElementById('qrModalMasuk').classList.add('hidden');
+            } else if (jenis === 'pulang') {
+                document.getElementById('qrModalPulang').classList.add('hidden');
+            }
         }
 
         // Fungsi Modal Preview Foto
@@ -411,9 +466,12 @@ $result_tabel = $conn->query($query_tabel);
 
         // Tutup modal kalau klik di luar area modal
         window.addEventListener('click', function(e) {
-            const qrModal = document.getElementById('qrModal');
+            const qrModalMasuk = document.getElementById('qrModalMasuk');
+            const qrModalPulang = document.getElementById('qrModalPulang');
             const photoModal = document.getElementById('photoModal');
-            if (e.target === qrModal) closeQrModal();
+
+            if (e.target === qrModalMasuk) closeQrModal('masuk');
+            if (e.target === qrModalPulang) closeQrModal('pulang');
             if (e.target === photoModal) closePhotoModal();
         });
     </script>

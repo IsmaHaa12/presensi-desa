@@ -80,7 +80,7 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
                     </svg>
                     <div>
                         <p class="text-xs font-semibold text-slate-800" id="statusJudul">Status Pemindaian</p>
-                        <p class="text-xs text-indigo-700 leading-relaxed mt-0.5" id="statusTeks">Arahkan kamera ke QR Code Kantor atau pilih gambar dari galeri.</p>
+                        <p class="text-xs text-indigo-700 leading-relaxed mt-0.5" id="statusTeks">Arahkan kamera ke QR Code Kantor (Masuk atau Pulang) atau pilih gambar dari galeri.</p>
                     </div>
                 </div>
             </div>
@@ -115,7 +115,7 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
                 </div>
 
                 <p id="kameraInfo" class="text-xs text-slate-500 text-center">
-                    Pastikan QR Code valid. Presensi dan swafoto akan terekam otomatis.
+                    Pastikan QR Code valid (Masuk/Pulang). Presensi dan swafoto akan terekam otomatis.
                 </p>
             </div>
 
@@ -210,20 +210,27 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
         });
     });
 
-    // 3. Handler Utama Ketika QR Berhasil Terbaca
+    // 3. Handler Utama Ketika QR Berhasil Terbaca (Mendukung Masuk & Pulang)
     function handleScannedData(decodedText) {
-        if (isProcessing && decodedText !== "PRESENSI_DESA_PASIR_VALID") return;
-        isProcessing = true;
+        if (isProcessing) return;
 
-        if (decodedText === "PRESENSI_DESA_PASIR_VALID") {
+        let jenisPresensi = "";
+        if (decodedText === "PRESENSI_MASUK_DESA_PASIR_VALID") {
+            jenisPresensi = "masuk";
+        } else if (decodedText === "PRESENSI_PULANG_DESA_PASIR_VALID") {
+            jenisPresensi = "pulang";
+        }
+
+        if (jenisPresensi !== "") {
+            isProcessing = true;
             html5QrCode.stop().catch(() => {}).finally(() => {
                 document.getElementById('statusBox').className = "mt-4 flex items-start bg-emerald-50 p-4 rounded-2xl border border-emerald-200";
                 document.getElementById('statusIcon').className = "w-5 h-5 text-emerald-600 mr-3 mt-0.5 shrink-0";
-                document.getElementById('statusJudul').innerText = "QR Code Valid Terdeteksi!";
+                document.getElementById('statusJudul').innerText = "QR Code " + jenisPresensi.toUpperCase() + " Valid!";
                 document.getElementById('statusTeks').innerText = "Mengambil swafoto otomatis...";
                 document.getElementById('statusTeks').className = "text-xs text-emerald-700 leading-relaxed mt-0.5";
 
-                captureSelfieAndSend();
+                captureSelfieAndSend(jenisPresensi, decodedText);
             });
         } else {
             isProcessing = false;
@@ -232,7 +239,7 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
     }
 
     // 4. Ambil Selfie Otomatis & Kirim ke Backend PHP
-    function captureSelfieAndSend() {
+    function captureSelfieAndSend(jenis, qrText) {
         navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "user"
@@ -256,7 +263,7 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
 
                     stream.getTracks().forEach(track => track.stop());
 
-                    kirimDataPresensi("masuk", fotoBase64);
+                    kirimDataPresensi(jenis, qrText, fotoBase64);
                 }, 1000);
             })
             .catch(err => {
@@ -267,23 +274,21 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
     }
 
     // 5. Kirim Data ke Backend (presensi_act.php)
-    // 5. Kirim Data ke Backend (presensi_act.php)
-    function kirimDataPresensi(jenis, fotoBase64) {
+    function kirimDataPresensi(jenis, qrText, fotoBase64) {
         fetch('../../actions/presensi_act.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    jenis: jenis,
-                    qr_data: "PRESENSI_DESA_PASIR_VALID",
+                    jenis: jenis, // "masuk" atau "pulang"
+                    qr_data: qrText,
                     foto: fotoBase64
                 })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Tampilkan modal sukses, lalu otomatis arahkan ke dashboard dalam 1.5 detik
                     showModal("Berhasil", data.message + " Mengalihkan ke beranda...", "success");
                     setTimeout(() => {
                         window.location.href = 'dashboard.php';

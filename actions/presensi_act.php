@@ -1,195 +1,107 @@
 <?php
-session_start();
 require_once '../config/database.php';
+
+// Pastikan request dari POST JSON
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['pegawai_id'])) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Sesi login Anda telah habis. Silakan login kembali.'
-    ]);
+    echo json_encode(['status' => 'error', 'message' => 'Sesi login telah habis. Silakan login ulang.']);
     exit;
 }
 
 $pegawai_id = $_SESSION['pegawai_id'];
+$tanggal_hari_ini = date('Y-m-d');
+$jam_sekarang = date('H:i:s');
 
-// ===============================
-// FUNGSI BANTU JSON RESPONSE
-// ===============================
-function kirimError($pesan)
-{
-    echo json_encode([
-        'status' => 'error',
-        'message' => $pesan
-    ]);
+// Ambil input JSON dari fetch JavaScript
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (!isset($data['jenis']) || !isset($data['qr_data']) || !isset($data['foto'])) {
+    echo json_encode(['status' => 'error', 'message' => 'Data permintaan tidak lengkap.']);
     exit;
 }
 
-function kirimSukses($pesan)
-{
-    echo json_encode([
-        'status' => 'success',
-        'message' => $pesan
-    ]);
+$jenis = $data['jenis']; // "masuk" atau "pulang"
+$qr_data = $data['qr_data'];
+$foto_base64 = $data['foto'];
+
+// 1. Validasi Token QR Code sesuai jenisnya
+$token_masuk_valid = "PRESENSI_MASUK_DESA_PASIR_VALID";
+$token_pulang_valid = "PRESENSI_PULANG_DESA_PASIR_VALID";
+
+if ($jenis === 'masuk' && $qr_data !== $token_masuk_valid) {
+    echo json_encode(['status' => 'error', 'message' => 'QR Code tidak valid! Silakan scan QR Code Masuk resmi dari admin.']);
     exit;
 }
 
-// ===============================
-// AMBIL DATA JSON DARI FRONTEND
-// ===============================
-$input = json_decode(file_get_contents("php://input"), true);
-
-if (!$input) {
-    kirimError('Data tidak valid.');
+if ($jenis === 'pulang' && $qr_data !== $token_pulang_valid) {
+    echo json_encode(['status' => 'error', 'message' => 'QR Code tidak valid! Silakan scan QR Code Pulang resmi dari admin.']);
+    exit;
 }
 
-$jenis   = isset($input['jenis']) ? trim($input['jenis']) : ''; // 'masuk' atau 'pulang'
-$qr_data = isset($input['qr_data']) ? trim($input['qr_data']) : '';
-$foto    = isset($input['foto']) ? $input['foto'] : '';
-
-// 1. Validasi Jenis Presensi
-if (!in_array($jenis, ['masuk', 'pulang'])) {
-    kirimError('Jenis presensi tidak valid.');
+// 2. Proses simpan foto Base64 ke folder server
+$folder_penyimpanan = "../uploads/presensi/";
+if (!file_exists($folder_penyimpanan)) {
+    mkdir($folder_penyimpanan, 0777, true);
 }
 
-// 2. Validasi Isi QR Code Statis
-if ($qr_data !== "PRESENSI_DESA_PASIR_VALID") {
-    kirimError('QR Code tidak valid! Silakan scan QR Code resmi dari admin.');
-}
+// Bersihkan format base64 header
+$image_parts = explode(";base64,", $foto_base64);
+$image_type_aux = explode("image/", $image_parts[0]);
+$image_type = $image_type_aux[1];
+$image_base64 = base64_decode($image_parts[1]);
 
-// 3. Validasi Keberadaan Foto Selfie
-if (empty($foto)) {
-    kirimError('Foto selfie wajib diambil.');
-}
+$nama_file_foto = "presensi_" . $pegawai_id . "_" . $jenis . "_" . time() . ".jpg";
+$path_file = $folder_penyimpanan . $nama_file_foto;
+$path_untuk_db = "uploads/presensi/" . $nama_file_foto;
 
-// ===============================
-// VALIDASI & DECODE FOTO BASE64
-// ===============================
-if (!preg_match('/^data:image\/(\w+);base64,/', $foto, $type)) {
-    kirimError('Format foto tidak valid.');
-}
+file_put_contents($path_file, $image_base64);
 
-$foto = substr($foto, strpos($foto, ',') + 1);
-$foto = base64_decode($foto);
-
-if ($foto === false) {
-    kirimError('Gagal membaca data foto.');
-}
-
-$ekstensi = strtolower($type[1]);
-if (!in_array($ekstensi, ['jpg', 'jpeg', 'png'])) {
-    $ekstensi = 'jpg';
-}
-
-// ===============================
-// FOLDER UPLOAD FOTO (SESUAIKAN PATH)
-// ===============================
-// Karena file ini ada di folder actions/, naik satu tingkat (../) lalu masuk ke uploads/presensi/
-$folderUpload = '../uploads/presensi/';
-if (!is_dir($folderUpload)) {
-    mkdir($folderUpload, 0777, true);
-}
-
-$namaFile = 'presensi_' . $pegawai_id . '_' . $jenis . '_' . date('Ymd_His') . '.' . $ekstensi;
-$pathFile = $folderUpload . $namaFile;
-
-if (!file_put_contents($pathFile, $foto)) {
-    kirimError('Gagal menyimpan file foto ke server.');
-}
-
-$fotoDb = 'uploads/presensi/' . $namaFile;
-
-// ===============================
-// CEK PRESENSI HARI INI DI DATABASE
-// ===============================
-$tanggalHariIni = date('Y-m-d');
-$jamSekarang    = date('H:i:s');
-
-$queryCek = "SELECT * FROM presensi WHERE pegawai_id = ? AND tanggal = ? LIMIT 1";
-$stmtCek = $conn->prepare($queryCek);
-$stmtCek->bind_param("is", $pegawai_id, $tanggalHariIni);
-$stmtCek->execute();
-$resultCek = $stmtCek->get_result();
-$dataPresensi = $resultCek->fetch_assoc();
-
-// ===============================
-// PROSES OTOMATIS BERDASARKAN STATUS
-// ===============================
+// 3. Logika Database Berdasarkan Jenis Presensi
 if ($jenis === 'masuk') {
-    // Cek apakah sudah absen masuk
-    if ($dataPresensi && !empty($dataPresensi['jam_masuk'])) {
-        // Jika sudah absen masuk tapi belum absen pulang, arahkan otomatis jadi absen pulang!
-        if (empty($dataPresensi['jam_pulang'])) {
-            $queryUpdatePulang = "UPDATE presensi SET jam_pulang = ?, foto_pulang = ? WHERE id = ?";
-            $stmtUpdatePulang = $conn->prepare($queryUpdatePulang);
-            $stmtUpdatePulang->bind_param("ssi", $jamSekarang, $fotoDb, $dataPresensi['id']);
+    // Cek apakah sudah pernah absen masuk hari ini
+    $cek_presensi = $conn->query("SELECT id FROM presensi WHERE pegawai_id = '$pegawai_id' AND tanggal = '$tanggal_hari_ini'");
 
-            if ($stmtUpdatePulang->execute()) {
-                kirimSukses('Absen pulang berhasil disimpan.');
-            } else {
-                kirimError('Gagal menyimpan absen pulang ke database.');
-            }
-        } else {
-            kirimError('Anda sudah melakukan absen masuk dan pulang hari ini.');
-        }
+    if ($cek_presensi->num_rows > 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Anda sudah melakukan presensi masuk hari ini!']);
         exit;
     }
 
-    if ($dataPresensi) {
-        // Update jam masuk jika baris tanggal sudah ada
-        $queryUpdateMasuk = "UPDATE presensi 
-                             SET jam_masuk = ?, 
-                                 foto_masuk = ?, 
-                                 status_kehadiran = 'Hadir'
-                             WHERE id = ?";
-        $stmtUpdateMasuk = $conn->prepare($queryUpdateMasuk);
-        $stmtUpdateMasuk->bind_param("ssi", $jamSekarang, $fotoDb, $dataPresensi['id']);
+    // Tentukan status hadir / terlambat (Misal jam masuk lewat dari 08:00 WIB dianggap terlambat)
+    $jam_batas_terlambat = "08:00:00";
+    $status_kehadiran = ($jam_sekarang > $jam_batas_terlambat) ? "Terlambat" : "Hadir";
 
-        if ($stmtUpdateMasuk->execute()) {
-            kirimSukses('Absen masuk berhasil disimpan.');
-        } else {
-            kirimError('Gagal menyimpan absen masuk ke database.');
-        }
+    // Insert data masuk baru ke tabel presensi
+    $query_insert = "INSERT INTO presensi (pegawai_id, tanggal, jam_masuk, foto_masuk, status_kehadiran) 
+                     VALUES ('$pegawai_id', '$tanggal_hari_ini', '$jam_sekarang', '$path_untuk_db', '$status_kehadiran')";
+
+    if ($conn->query($query_insert)) {
+        echo json_encode(['status' => 'success', 'message' => 'Presensi masuk berhasil direkam!']);
     } else {
-        // Insert baru jika belum ada data sama sekali hari ini
-        $queryInsertMasuk = "INSERT INTO presensi 
-                            (pegawai_id, tanggal, jam_masuk, foto_masuk, status_kehadiran)
-                            VALUES (?, ?, ?, ?, 'Hadir')";
-        $stmtInsertMasuk = $conn->prepare($queryInsertMasuk);
-        $stmtInsertMasuk->bind_param("isss", $pegawai_id, $tanggalHariIni, $jamSekarang, $fotoDb);
+        echo json_encode(['status' => 'error', 'message' => 'Gagal menyimpan ke database: ' . $conn->error]);
+    }
+} else if ($jenis === 'pulang') {
+    // Cek apakah sudah absen masuk hari ini (syarat absen pulang)
+    $cek_presensi = $conn->query("SELECT id, jam_pulang FROM presensi WHERE pegawai_id = '$pegawai_id' AND tanggal = '$tanggal_hari_ini'");
 
-        if ($stmtInsertMasuk->execute()) {
-            kirimSukses('Absen masuk berhasil disimpan.');
-        } else {
-            kirimError('Gagal menyimpan absen masuk ke database.');
-        }
+    if ($cek_presensi->num_rows == 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Anda belum melakukan presensi masuk hari ini!']);
+        exit;
+    }
+
+    $row_presensi = $cek_presensi->fetch_assoc();
+    if (!empty($row_presensi['jam_pulang']) && $row_presensi['jam_pulang'] != '-') {
+        echo json_encode(['status' => 'error', 'message' => 'Anda sudah melakukan presensi pulang hari ini!']);
+        exit;
+    }
+
+    // Update data jam pulang dan foto pulang ke baris hari ini
+    $presensi_id = $row_presensi['id'];
+    $query_update = "UPDATE presensi SET jam_pulang = '$jam_sekarang', foto_pulang = '$path_untuk_db' WHERE id = '$presensi_id'";
+
+    if ($conn->query($query_update)) {
+        echo json_encode(['status' => 'success', 'message' => 'Presensi pulang berhasil direkam!']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Gagal memperbarui database: ' . $conn->error]);
     }
 }
-
-// ===============================
-// PROSES ABSEN PULANG (JIKA DIPANGGIL EKSPLISIT)
-// ===============================
-if ($jenis === 'pulang') {
-    if (!$dataPresensi || empty($dataPresensi['jam_masuk'])) {
-        kirimError('Anda belum melakukan absen masuk hari ini.');
-    }
-
-    if (!empty($dataPresensi['jam_pulang'])) {
-        kirimError('Anda sudah melakukan absen pulang hari ini.');
-    }
-
-    $queryUpdatePulang = "UPDATE presensi 
-                          SET jam_pulang = ?, 
-                              foto_pulang = ?
-                          WHERE id = ?";
-    $stmtUpdatePulang = $conn->prepare($queryUpdatePulang);
-    $stmtUpdatePulang->bind_param("ssi", $jamSekarang, $fotoDb, $dataPresensi['id']);
-
-    if ($stmtUpdatePulang->execute()) {
-        kirimSukses('Absen pulang berhasil disimpan.');
-    } else {
-        kirimError('Gagal menyimpan absen pulang ke database.');
-    }
-}
-
-kirimError('Permintaan tidak dikenali.');
