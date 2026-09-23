@@ -163,7 +163,7 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
     </div>
 </div>
 
-<!-- SCRIPT JAVASCRIPT STABIL -->
+<!-- SCRIPT JAVASCRIPT STABIL & ANTI-STUCK -->
 <script>
     let isProcessing = false;
     const html5QrCode = new Html5Qrcode("reader");
@@ -188,31 +188,47 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
         });
     });
 
-    // 2. Fitur Scan QR dari Galeri Menggunakan Native html5-qrcode scanFile
-    document.getElementById('qr-input-file').addEventListener('change', e => {
+    // 2. Fitur Scan QR dari Galeri (Anti-Stuck / Tanpa .stop() yang menggantung)
+    document.getElementById('qr-input-file').addEventListener('change', async e => {
         if (e.target.files.length === 0 || isProcessing) return;
 
         const imageFile = e.target.files[0];
         isProcessing = true;
 
-        html5QrCode.stop().catch(() => {}).finally(() => {
-            const tempScanner = new Html5Qrcode("reader");
-            tempScanner.scanFile(imageFile, true)
-                .then(decodedText => {
-                    handleScannedData(decodedText);
-                })
-                .catch(err => {
-                    isProcessing = false;
-                    showModal("Gagal Membaca QR", "QR Code tidak ditemukan pada gambar tersebut. Pastikan memilih gambar yang jelas.", "error", () => {
-                        window.location.reload();
-                    });
-                });
-        });
+        // Tampilkan indikator sedang memproses
+        document.getElementById('statusBox').className = "mt-4 flex items-start bg-amber-50 p-4 rounded-2xl border border-amber-200";
+        document.getElementById('statusIcon').className = "w-5 h-5 text-amber-600 mr-3 mt-0.5 shrink-0";
+        document.getElementById('statusJudul').innerText = "Memproses Gambar...";
+        document.getElementById('statusTeks').innerText = "Sedang membaca QR Code dari galeri, mohon tunggu sebentar...";
+
+        try {
+            // Gunakan scanner mandiri khusus untuk file gambar
+            const fileScanner = new Html5Qrcode("reader");
+            const decodedText = await fileScanner.scanFile(imageFile, true);
+
+            // Jika sukses terbaca, teruskan ke handler utama
+            handleScannedData(decodedText);
+
+        } catch (err) {
+            console.error("Gagal membaca file QR:", err);
+            isProcessing = false;
+
+            // Kembalikan status box ke normal
+            document.getElementById('statusBox').className = "mt-4 flex items-start bg-indigo-50 p-4 rounded-2xl border border-indigo-200";
+            document.getElementById('statusIcon').className = "w-5 h-5 text-indigo-600 mr-3 mt-0.5 shrink-0";
+            document.getElementById('statusJudul').innerText = "Status Pemindaian";
+            document.getElementById('statusTeks').innerText = "Arahkan kamera ke QR Code Kantor (Masuk atau Pulang) atau pilih gambar dari galeri.";
+
+            // Tampilkan modal gagal
+            showModal("Gagal Membaca QR", "QR Code tidak ditemukan pada gambar tersebut. Pastikan memilih file gambar QR Code yang jelas.", "error", () => {
+                window.location.reload();
+            });
+        }
     });
 
     // 3. Handler Utama Ketika QR Berhasil Terbaca (Mendukung Masuk & Pulang)
     function handleScannedData(decodedText) {
-        if (isProcessing) return;
+        if (isProcessing && decodedText !== "PRESENSI_MASUK_DESA_PASIR_VALID" && decodedText !== "PRESENSI_PULANG_DESA_PASIR_VALID") return;
 
         let jenisPresensi = "";
         if (decodedText === "PRESENSI_MASUK_DESA_PASIR_VALID") {
@@ -234,7 +250,9 @@ $tanggal_sekarang = $hari[date("w")] . ", " . date("j") . " " . $bulan[date("n")
             });
         } else {
             isProcessing = false;
-            showModal("Peringatan", "QR Code tidak dikenali atau salah! Gunakan QR Code resmi kantor.", "error");
+            showModal("Peringatan", "QR Code tidak dikenali atau salah! Gunakan QR Code resmi kantor.", "error", () => {
+                window.location.reload();
+            });
         }
     }
 
