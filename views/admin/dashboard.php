@@ -327,7 +327,7 @@ $result_tabel = $conn->query($query_tabel);
         </main>
     </div>
 
-    <!-- MODAL POP-UP QR CODE MASUK -->
+    <!-- MODAL POP-UP QR CODE MASuk -->
     <div id="qrModalMasuk" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-slate-200 relative text-center">
             <button onclick="closeQrModal('masuk')" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
@@ -348,9 +348,17 @@ $result_tabel = $conn->query($query_tabel);
                 Balai Desa Pasir, Kec. Ayah, Kab. Kebumen
             </div>
 
-            <button onclick="closeQrModal('masuk')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition shadow-sm">
-                Tutup Tampilan
-            </button>
+            <div class="space-y-2">
+                <button onclick="downloadStyledQRCode('masuk')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download Kartu QR Masuk
+                </button>
+                <button onclick="closeQrModal('masuk')" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                    Tutup Tampilan
+                </button>
+            </div>
         </div>
     </div>
 
@@ -375,9 +383,17 @@ $result_tabel = $conn->query($query_tabel);
                 Balai Desa Pasir, Kec. Ayah, Kab. Kebumen
             </div>
 
-            <button onclick="closeQrModal('pulang')" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition shadow-sm">
-                Tutup Tampilan
-            </button>
+            <div class="space-y-2">
+                <button onclick="downloadStyledQRCode('pulang')" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download Kartu QR Pulang
+                </button>
+                <button onclick="closeQrModal('pulang')" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                    Tutup Tampilan
+                </button>
+            </div>
         </div>
     </div>
 
@@ -403,7 +419,7 @@ $result_tabel = $conn->query($query_tabel);
         </div>
     </div>
 
-    <!-- SCRIPT JAVASCRIPT MODAL & AUTO-GENERATE QR -->
+    <!-- SCRIPT JAVASCRIPT MODAL, AUTO-GENERATE & STYLISH CANVAS DOWNLOAD -->
     <script>
         let qrMasukInitialized = false;
         let qrPulangInitialized = false;
@@ -414,10 +430,10 @@ $result_tabel = $conn->query($query_tabel);
                 document.getElementById('qrModalMasuk').classList.remove('hidden');
                 if (!qrMasukInitialized) {
                     new QRCode(document.getElementById("qrcode_masuk"), {
-                        text: "PRESENSI_MASUK_DESA_PASIR_VALID", // Token khusus Presensi Masuk
+                        text: "PRESENSI_MASUK_DESA_PASIR_VALID",
                         width: 200,
                         height: 200,
-                        colorDark: "#065f46", // Warna hijau tua
+                        colorDark: "#065f46",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.H
                     });
@@ -427,10 +443,10 @@ $result_tabel = $conn->query($query_tabel);
                 document.getElementById('qrModalPulang').classList.remove('hidden');
                 if (!qrPulangInitialized) {
                     new QRCode(document.getElementById("qrcode_pulang"), {
-                        text: "PRESENSI_PULANG_DESA_PASIR_VALID", // Token khusus Presensi Pulang
+                        text: "PRESENSI_PULANG_DESA_PASIR_VALID",
                         width: 200,
                         height: 200,
-                        colorDark: "#3730a3", // Warna ungu/indigo tua
+                        colorDark: "#3730a3",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.H
                     });
@@ -445,6 +461,113 @@ $result_tabel = $conn->query($query_tabel);
             } else if (jenis === 'pulang') {
                 document.getElementById('qrModalPulang').classList.add('hidden');
             }
+        }
+
+        // Fungsi Download Kartu QR Code Berhias (Canvas Design)
+        function downloadStyledQRCode(jenis) {
+            const containerId = jenis === 'masuk' ? 'qrcode_masuk' : 'qrcode_pulang';
+            const qrContainer = document.getElementById(containerId);
+            const imgElement = qrContainer.querySelector('img');
+            const canvasElement = qrContainer.querySelector('canvas');
+
+            let qrImageSource = '';
+            if (imgElement && imgElement.src) {
+                qrImageSource = imgElement.src;
+            } else if (canvasElement) {
+                qrImageSource = canvasElement.toDataURL("image/png");
+            }
+
+            if (!qrImageSource) {
+                alert("QR Code belum siap. Silakan tutup dan buka ulang modal.");
+                return;
+            }
+
+            // Buat Canvas Baru untuk Merakit Kartu Estetik
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Ukuran Kartu High-Res (600 x 750 px)
+            canvas.width = 600;
+            canvas.height = 750;
+
+            // 1. Background Kartu Putih Bersih dengan Sudut Melengkung
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Garis Border Bingkai Kartu Luar
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+            // 2. Header Banner Atas (Warna Berbeda untuk Masuk & Pulang)
+            const isMasuk = jenis === 'masuk';
+            ctx.fillStyle = isMasuk ? "#065f46" : "#3730a3"; // Hijau untuk Masuk, Indigo untuk Pulang
+            ctx.fillRect(15, 15, canvas.width - 30, 130);
+
+            // Teks Judul Utama di Header
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 26px 'Plus Jakarta Sans', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("PRESENSI " + jenis.toUpperCase(), canvas.width / 2, 65);
+
+            // Subjudul Header
+            ctx.font = "15px 'Plus Jakarta Sans', sans-serif";
+            ctx.fillStyle = "#a7f3d0"; // Aksen hijau muda / terang
+            if (!isMasuk) ctx.fillStyle = "#c7d2fe"; // Aksen ungu muda untuk pulang
+            ctx.fillText("PEMERINTAHAN DESA PASIR", canvas.width / 2, 100);
+
+            // 3. Muat Gambar QR Code Asli ke dalam Canvas
+            const qrImg = new Image();
+            qrImg.crossOrigin = "anonymous";
+            qrImg.onload = function() {
+                // Kotak Putih Tempat QR Code Berada (Shadow Effect Simulasi)
+                ctx.fillStyle = "#f8fafc";
+                ctx.strokeStyle = "#cbd5e1";
+                ctx.lineWidth = 2;
+
+                const boxX = 135;
+                const boxY = 175;
+                const boxSize = 330;
+
+                // Gambar Kotak Penyangga QR
+                ctx.fillRect(boxX, boxY, boxSize, boxSize);
+                ctx.strokeRect(boxX, boxY, boxSize, boxSize);
+
+                // Gambar QR Code di Tengah Kotak
+                ctx.drawImage(qrImg, boxX + 25, boxY + 25, 280, 280);
+
+                // 4. Footer Keterangan di Bawah QR Code
+                ctx.fillStyle = "#0f172a";
+                ctx.font = "bold 16px 'Plus Jakarta Sans', sans-serif";
+                ctx.fillText("Arahkan Kamera HP ke QR Code Ini", canvas.width / 2, 555);
+
+                ctx.font = "14px 'Plus Jakarta Sans', sans-serif";
+                ctx.fillStyle = "#64748b";
+                ctx.fillText("Sistem Validasi Otomatis & Swafoto Desa Pasir", canvas.width / 2, 585);
+
+                // Garis Pemisah Tipis
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(80, 620);
+                ctx.lineTo(520, 620);
+                ctx.stroke();
+
+                // Lokasi / Keterangan Wilayah Instansi
+                ctx.fillStyle = isMasuk ? "#047857" : "#4338ca";
+                ctx.font = "bold 14px 'Plus Jakarta Sans', sans-serif";
+                ctx.fillText("📍 Balai Desa Pasir, Kec. Ayah, Kab. Kebumen", canvas.width / 2, 665);
+
+                // 5. Trigger Download Otomatis sebagai File PNG
+                const finalImageUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement('a');
+                downloadLink.href = finalImageUrl;
+                downloadLink.download = `Kartu_QR_${jenis.toUpperCase()}_Desa_Pasir.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            };
+            qrImg.src = qrImageSource;
         }
 
         // Fungsi Modal Preview Foto
