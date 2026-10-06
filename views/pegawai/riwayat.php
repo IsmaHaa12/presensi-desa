@@ -14,6 +14,11 @@ $nama_pegawai = $_SESSION['nama'];
 $bulan_filter = isset($_GET['bulan']) ? $_GET['bulan'] : date('m');
 $tahun_filter = isset($_GET['tahun']) ? $_GET['tahun'] : date('Y');
 
+// Sanitasi input supaya aman dari SQL injection
+$bulan_filter = str_pad((int)$bulan_filter, 2, '0', STR_PAD_LEFT);
+$tahun_filter = (int)$tahun_filter;
+$pegawai_id = (int)$pegawai_id;
+
 // Array nama bulan buat dropdown
 $nama_bulan = [
     '01' => 'Januari',
@@ -176,6 +181,7 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                         $hari_indonesia = $nama_hari[$hari_inggris] ?? $hari_inggris;
                         $tanggal_angka = date('d', strtotime($row['tanggal']));
                         $bulan_tahun = $nama_bulan[date('m', strtotime($row['tanggal']))] . ' ' . date('Y', strtotime($row['tanggal']));
+                        $terlambat = ($row['status_kehadiran'] == 'Terlambat');
                         ?>
                         <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden flex flex-col justify-between">
 
@@ -192,12 +198,15 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                                 </div>
 
                                 <div>
-                                    <?php if ($row['status_kehadiran'] == 'Hadir' || $row['status_kehadiran'] == 'Terlambat'): ?>
+                                    <?php if ($row['status_kehadiran'] == 'Hadir'): ?>
+                                        <!-- Hadir tepat waktu: hijau -->
                                         <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
+                                    <?php elseif ($terlambat): ?>
+                                        <!-- Terlambat: merah -->
+                                        <span class="bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
                                     <?php else: ?>
-                                        <span class="bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-xl text-xs font-semibold">
-                                            <?= htmlspecialchars($row['status_kehadiran']) ?>
-                                        </span>
+                                        <!-- Izin / Sakit / Cuti / Dinas: kuning -->
+                                        <span class="bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1 rounded-xl text-xs font-semibold"><?= htmlspecialchars($row['status_kehadiran']) ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -207,7 +216,7 @@ $total_izin = $conn->query($query_izin)->fetch_assoc()['total'] ?? 0;
                                 <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Masuk</p>
                                     <?php if (!empty($row['jam_masuk'])): ?>
-                                        <p class="text-lg font-bold text-slate-800 mb-2"><?= date('H:i', strtotime($row['jam_masuk'])) ?></p>
+                                        <p class="text-lg font-bold mb-2 <?= $terlambat ? 'text-rose-600' : 'text-slate-800' ?>"><?= date('H:i', strtotime($row['jam_masuk'])) ?></p>
                                         <?php if (!empty($row['foto_masuk'])): ?>
                                             <button onclick="openPhotoModal('../../<?= htmlspecialchars($row['foto_masuk']) ?>', 'Bukti Foto Masuk - <?= $tanggal_angka ?> <?= $bulan_tahun ?>')" class="inline-flex items-center text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition shadow-sm">
                                                 <svg class="w-3.5 h-3.5 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
