@@ -1,0 +1,23 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+?>
+{
+"name": "Sistem Presensi Desa",
+"short_name": "Presensi",
+"start_url": "/index.php",
+"display": "standalone",
+"background_color": "#ffffff",
+"theme_color": "#2563eb",
+"icons": [
+{
+"src": "assets/img/icon-192.png",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "assets/img/icon-512.png",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}

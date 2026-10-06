@@ -17,6 +17,13 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk - Sistem Presensi Desa</title>
+
+    <!-- PWA Manifest & Meta Tags -->
+    <link rel="manifest" href="manifest.php" crossorigin="use-credentials">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-slate">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -33,10 +40,10 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="w-full max-w-md relative z-10">
-        
+
         <!-- Main Card Container -->
         <div class="bg-white/95 backdrop-blur-xl border border-white/20 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-black/20">
-            
+
             <!-- Brand Header -->
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-slate-900 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-slate-900/20 mb-4 transform hover:scale-105 transition duration-300">
@@ -137,6 +144,15 @@ $success = isset($_GET['success']) ? $_GET['success'] : '';
     </div>
 
     <script>
+        // Registrasi Service Worker untuk PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('Service Worker berhasil didaftarkan!', reg))
+                    .catch((err) => console.log('Pendaftaran Service Worker gagal:', err));
+            });
+        }
+
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
